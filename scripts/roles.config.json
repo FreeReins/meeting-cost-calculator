@@ -1,0 +1,186 @@
+{
+  "$comment": "Curated BLS OEWS roles. 'industry' is the OEWS industry code (NAICS, 6 chars). 'soc' is the 2018 SOC code without the dash. Edit freely, then run: python3 scripts/build_salaries.py",
+  "general": {
+    "label": "Every Industry (U.S. average)",
+    "industry": "000000",
+    "roles": [
+      { "id": "generic", "soc": "000000", "label": "Generic Attendee", "emoji": "🙂" },
+      { "id": "ceo", "soc": "111011", "label": "The CEO", "emoji": "👑" },
+      { "id": "middle-mgr", "soc": "111021", "label": "Middle Manager", "emoji": "📋" },
+      { "id": "it-director", "soc": "113021", "label": "IT / Engineering Director", "emoji": "🧭" },
+      { "id": "eng-mgr", "soc": "119041", "label": "Engineering Manager", "emoji": "🛠️" },
+      { "id": "pm", "soc": "112021", "label": "Product / Marketing Manager", "emoji": "🗺️" },
+      { "id": "sales-mgr", "soc": "112022", "label": "Sales Manager", "emoji": "📈" },
+      { "id": "fin-mgr", "soc": "113031", "label": "Finance Manager", "emoji": "💼" },
+      { "id": "hr-mgr", "soc": "113121", "label": "HR Manager", "emoji": "🤝" },
+      { "id": "project-mgr", "soc": "131082", "label": "Project Manager", "emoji": "📆" },
+      { "id": "consultant", "soc": "131111", "label": "Consultant", "emoji": "🕴️" },
+      { "id": "recruiter", "soc": "131071", "label": "Recruiter / HR", "emoji": "🔎" },
+      { "id": "accountant", "soc": "132011", "label": "Accountant", "emoji": "🧮" },
+      { "id": "fin-analyst", "soc": "132051", "label": "Financial Analyst", "emoji": "📊" },
+      { "id": "marketing", "soc": "131161", "label": "Marketing Specialist", "emoji": "📣" },
+      { "id": "swe", "soc": "151252", "label": "Software Engineer", "emoji": "💻" },
+      { "id": "qa", "soc": "151253", "label": "QA Engineer", "emoji": "🐛" },
+      { "id": "security", "soc": "151212", "label": "Security Analyst", "emoji": "🔐" },
+      { "id": "sre", "soc": "151244", "label": "Sysadmin / SRE", "emoji": "🚒" },
+      { "id": "dba", "soc": "151242", "label": "Database Admin", "emoji": "🗄️" },
+      { "id": "data-sci", "soc": "152051", "label": "Data Scientist", "emoji": "🧪" },
+      { "id": "designer", "soc": "151255", "label": "UI/UX Designer", "emoji": "🎨" },
+      { "id": "helpdesk", "soc": "151232", "label": "IT Help Desk", "emoji": "🔌" },
+      { "id": "lawyer", "soc": "231011", "label": "Lawyer", "emoji": "⚖️" },
+      { "id": "sales-rep", "soc": "414012", "label": "Sales Rep", "emoji": "🤑" },
+      { "id": "support", "soc": "434051", "label": "Customer Support", "emoji": "🎧" },
+      { "id": "exec-asst", "soc": "436011", "label": "Executive Assistant", "emoji": "🗂️" },
+      { "id": "admin", "soc": "436014", "label": "Admin Assistant", "emoji": "📎" }
+    ]
+  },
+  "industries": [
+    { "id": "tech", "label": "Tech & IT Services", "emoji": "💻", "industry": "541500", "roles": [
+      { "id": "swe", "soc": "151252", "label": "Software Engineer", "emoji": "💻" },
+      { "id": "qa", "soc": "151253", "label": "QA Engineer", "emoji": "🐛" },
+      { "id": "it-director", "soc": "113021", "label": "Engineering Director", "emoji": "🧭" },
+      { "id": "sys-analyst", "soc": "151211", "label": "Systems Analyst", "emoji": "🧩" },
+      { "id": "sre", "soc": "151244", "label": "Sysadmin / SRE", "emoji": "🚒" }
+    ]},
+    { "id": "consulting", "label": "Management Consulting", "emoji": "🕴️", "industry": "541600", "roles": [
+      { "id": "consultant", "soc": "131111", "label": "Consultant", "emoji": "🕴️" },
+      { "id": "engagement-mgr", "soc": "111021", "label": "Engagement Manager", "emoji": "📋" },
+      { "id": "managing-partner", "soc": "111011", "label": "Managing Partner", "emoji": "👑" },
+      { "id": "data-sci", "soc": "152051", "label": "Data Scientist", "emoji": "🧪" },
+      { "id": "research", "soc": "131161", "label": "Research Analyst", "emoji": "🔬" }
+    ]},
+    { "id": "legal", "label": "Law Firms", "emoji": "⚖️", "industry": "541100", "roles": [
+      { "id": "lawyer", "soc": "231011", "label": "Lawyer", "emoji": "⚖️" },
+      { "id": "senior-partner", "soc": "111011", "label": "Senior Partner", "emoji": "👑" },
+      { "id": "paralegal", "soc": "232011", "label": "Paralegal", "emoji": "📚" },
+      { "id": "legal-sec", "soc": "436012", "label": "Legal Secretary", "emoji": "🗂️" },
+      { "id": "receptionist", "soc": "434171", "label": "Receptionist", "emoji": "🛎️" }
+    ]},
+    { "id": "advertising", "label": "Advertising & Marketing Agencies", "emoji": "📣", "industry": "541800", "roles": [
+      { "id": "ad-mgr", "soc": "112011", "label": "Advertising Manager", "emoji": "📺" },
+      { "id": "art-director", "soc": "271011", "label": "Art Director", "emoji": "🎬" },
+      { "id": "graphic-designer", "soc": "271024", "label": "Graphic Designer", "emoji": "🎨" },
+      { "id": "pr", "soc": "273031", "label": "PR Specialist", "emoji": "🗞️" },
+      { "id": "ad-sales", "soc": "413011", "label": "Ad Sales Agent", "emoji": "🤑" }
+    ]},
+    { "id": "finance", "label": "Wall Street & Investing", "emoji": "📈", "industry": "523000", "roles": [
+      { "id": "banker", "soc": "413031", "label": "Securities Trader / Banker", "emoji": "🐂" },
+      { "id": "fin-analyst", "soc": "132051", "label": "Financial Analyst", "emoji": "📊" },
+      { "id": "advisor", "soc": "132052", "label": "Financial Advisor", "emoji": "🧑‍💼" },
+      { "id": "fin-mgr", "soc": "113031", "label": "Finance Manager", "emoji": "💼" },
+      { "id": "ceo", "soc": "111011", "label": "Fund CEO", "emoji": "👑" }
+    ]},
+    { "id": "banking", "label": "Banking & Lending", "emoji": "🏦", "industry": "522000", "roles": [
+      { "id": "loan-officer", "soc": "132072", "label": "Loan Officer", "emoji": "🏠" },
+      { "id": "credit-analyst", "soc": "132041", "label": "Credit Analyst", "emoji": "💳" },
+      { "id": "teller", "soc": "433071", "label": "Bank Teller", "emoji": "🪙" },
+      { "id": "branch-mgr", "soc": "113031", "label": "Branch / Finance Manager", "emoji": "💼" },
+      { "id": "support", "soc": "434051", "label": "Customer Service Rep", "emoji": "🎧" }
+    ]},
+    { "id": "insurance", "label": "Insurance", "emoji": "☂️", "industry": "524000", "roles": [
+      { "id": "actuary", "soc": "152011", "label": "Actuary", "emoji": "🎲" },
+      { "id": "underwriter", "soc": "132053", "label": "Underwriter", "emoji": "✍️" },
+      { "id": "adjuster", "soc": "131031", "label": "Claims Adjuster", "emoji": "🔍" },
+      { "id": "agent", "soc": "413021", "label": "Insurance Agent", "emoji": "🤝" },
+      { "id": "support", "soc": "434051", "label": "Customer Service Rep", "emoji": "🎧" }
+    ]},
+    { "id": "corporate", "label": "Corporate HQ", "emoji": "🏢", "industry": "551000", "roles": [
+      { "id": "ceo", "soc": "111011", "label": "The CEO", "emoji": "👑" },
+      { "id": "vp", "soc": "111021", "label": "VP of Operations", "emoji": "🧑‍💼" },
+      { "id": "hr-mgr", "soc": "113121", "label": "HR Manager", "emoji": "🤝" },
+      { "id": "project-mgr", "soc": "131082", "label": "Project Manager", "emoji": "📆" },
+      { "id": "exec-asst", "soc": "436011", "label": "Executive Assistant", "emoji": "🗂️" }
+    ]},
+    { "id": "hospitals", "label": "Hospitals", "emoji": "🏥", "industry": "622000", "roles": [
+      { "id": "physician", "soc": "291229", "label": "Physician", "emoji": "🩺" },
+      { "id": "pa", "soc": "291071", "label": "Physician Assistant", "emoji": "💉" },
+      { "id": "nurse", "soc": "291141", "label": "Registered Nurse", "emoji": "👩‍⚕️" },
+      { "id": "cna", "soc": "311131", "label": "Nursing Assistant", "emoji": "🩹" },
+      { "id": "health-admin", "soc": "119111", "label": "Hospital Administrator", "emoji": "📋" }
+    ]},
+    { "id": "education", "label": "Schools & Universities", "emoji": "🎓", "industry": "611000", "roles": [
+      { "id": "teacher-elem", "soc": "252021", "label": "Elementary Teacher", "emoji": "🍎" },
+      { "id": "teacher-hs", "soc": "252031", "label": "High School Teacher", "emoji": "📐" },
+      { "id": "principal", "soc": "119032", "label": "Principal", "emoji": "🏫" },
+      { "id": "dean", "soc": "119033", "label": "Dean / University Admin", "emoji": "🎓" },
+      { "id": "ta", "soc": "259045", "label": "Teaching Assistant", "emoji": "✏️" }
+    ]},
+    { "id": "federal", "label": "Federal Government", "emoji": "🏛️", "industry": "999100", "roles": [
+      { "id": "deputy", "soc": "111021", "label": "Deputy Assistant Director", "emoji": "🏛️" },
+      { "id": "mgmt-analyst", "soc": "131111", "label": "Management Analyst", "emoji": "📑" },
+      { "id": "compliance", "soc": "131041", "label": "Compliance Officer", "emoji": "✅" },
+      { "id": "security", "soc": "151212", "label": "Security Analyst", "emoji": "🔐" },
+      { "id": "clerk", "soc": "439061", "label": "Office Clerk", "emoji": "🗃️" }
+    ]},
+    { "id": "local-gov", "label": "Local Government", "emoji": "🏙️", "industry": "999300", "roles": [
+      { "id": "council", "soc": "111031", "label": "City Council Member", "emoji": "🎙️" },
+      { "id": "police", "soc": "333051", "label": "Police Officer", "emoji": "👮" },
+      { "id": "firefighter", "soc": "332011", "label": "Firefighter", "emoji": "🚒" },
+      { "id": "civil-eng", "soc": "172051", "label": "Civil Engineer", "emoji": "🌉" },
+      { "id": "clerk", "soc": "439061", "label": "Office Clerk", "emoji": "🗃️" }
+    ]},
+    { "id": "construction", "label": "Construction", "emoji": "🏗️", "industry": "236000", "roles": [
+      { "id": "construction-mgr", "soc": "119021", "label": "Construction Manager", "emoji": "👷" },
+      { "id": "foreman", "soc": "471011", "label": "Foreman", "emoji": "🦺" },
+      { "id": "estimator", "soc": "131051", "label": "Cost Estimator", "emoji": "🧮" },
+      { "id": "electrician", "soc": "472111", "label": "Electrician", "emoji": "⚡" },
+      { "id": "carpenter", "soc": "472031", "label": "Carpenter", "emoji": "🔨" }
+    ]},
+    { "id": "manufacturing", "label": "Auto & Aerospace Manufacturing", "emoji": "🚀", "industry": "336000", "roles": [
+      { "id": "aero-eng", "soc": "172011", "label": "Aerospace Engineer", "emoji": "🚀" },
+      { "id": "mech-eng", "soc": "172141", "label": "Mechanical Engineer", "emoji": "⚙️" },
+      { "id": "industrial-eng", "soc": "172112", "label": "Industrial Engineer", "emoji": "🏭" },
+      { "id": "line-supervisor", "soc": "511011", "label": "Line Supervisor", "emoji": "📋" },
+      { "id": "assembler", "soc": "512090", "label": "Assembler", "emoji": "🔩" }
+    ]},
+    { "id": "retail", "label": "Big-Box Retail", "emoji": "🛒", "industry": "455000", "roles": [
+      { "id": "district-mgr", "soc": "111021", "label": "District Manager", "emoji": "🧑‍💼" },
+      { "id": "store-mgr", "soc": "411011", "label": "Store Supervisor", "emoji": "🏪" },
+      { "id": "sales-assoc", "soc": "412031", "label": "Sales Associate", "emoji": "🛍️" },
+      { "id": "cashier", "soc": "412011", "label": "Cashier", "emoji": "🧾" },
+      { "id": "stocker", "soc": "537065", "label": "Stocker", "emoji": "📦" }
+    ]},
+    { "id": "restaurants", "label": "Restaurants & Bars", "emoji": "🍔", "industry": "722000", "roles": [
+      { "id": "gm", "soc": "119051", "label": "Restaurant Manager", "emoji": "🧑‍🍳" },
+      { "id": "shift-lead", "soc": "351012", "label": "Shift Lead", "emoji": "⏱️" },
+      { "id": "cook", "soc": "352014", "label": "Line Cook", "emoji": "🍳" },
+      { "id": "server", "soc": "353031", "label": "Server", "emoji": "🍽️" },
+      { "id": "bartender", "soc": "353011", "label": "Bartender", "emoji": "🍸" }
+    ]},
+    { "id": "logistics", "label": "Warehousing & Logistics", "emoji": "📦", "industry": "493000", "roles": [
+      { "id": "logistics-mgr", "soc": "113071", "label": "Logistics Manager", "emoji": "🗺️" },
+      { "id": "shipping-clerk", "soc": "435071", "label": "Shipping Clerk", "emoji": "🏷️" },
+      { "id": "forklift", "soc": "537051", "label": "Forklift Operator", "emoji": "🚜" },
+      { "id": "picker", "soc": "537065", "label": "Order Picker", "emoji": "📦" },
+      { "id": "laborer", "soc": "537062", "label": "Warehouse Associate", "emoji": "💪" }
+    ]},
+    { "id": "hotels", "label": "Hotels & Lodging", "emoji": "🏨", "industry": "721000", "roles": [
+      { "id": "lodging-mgr", "soc": "119081", "label": "Hotel Manager", "emoji": "🏨" },
+      { "id": "front-desk", "soc": "434081", "label": "Front Desk Clerk", "emoji": "🛎️" },
+      { "id": "maintenance", "soc": "499071", "label": "Maintenance Tech", "emoji": "🔧" },
+      { "id": "cook", "soc": "352014", "label": "Cook", "emoji": "🍳" },
+      { "id": "housekeeping", "soc": "372012", "label": "Housekeeper", "emoji": "🧹" }
+    ]},
+    { "id": "energy", "label": "Oil & Gas", "emoji": "🛢️", "industry": "211000", "roles": [
+      { "id": "petro-eng", "soc": "172171", "label": "Petroleum Engineer", "emoji": "🛢️" },
+      { "id": "geoscientist", "soc": "192042", "label": "Geoscientist", "emoji": "🪨" },
+      { "id": "ops-mgr", "soc": "111021", "label": "Operations Manager", "emoji": "📋" },
+      { "id": "accountant", "soc": "132011", "label": "Accountant", "emoji": "🧮" },
+      { "id": "operator", "soc": "475013", "label": "Field Service Operator", "emoji": "⛽" }
+    ]},
+    { "id": "utilities", "label": "Utilities", "emoji": "⚡", "industry": "221000", "roles": [
+      { "id": "ops-mgr", "soc": "111021", "label": "Operations Manager", "emoji": "📋" },
+      { "id": "ee", "soc": "172071", "label": "Electrical Engineer", "emoji": "🔌" },
+      { "id": "plant-op", "soc": "518013", "label": "Power Plant Operator", "emoji": "🏭" },
+      { "id": "lineworker", "soc": "499051", "label": "Lineworker", "emoji": "🪜" },
+      { "id": "water-op", "soc": "518031", "label": "Water Treatment Operator", "emoji": "💧" }
+    ]},
+    { "id": "nonprofit", "label": "Nonprofits & Associations", "emoji": "💚", "industry": "813000", "roles": [
+      { "id": "exec-director", "soc": "111011", "label": "Executive Director", "emoji": "👑" },
+      { "id": "fundraising-mgr", "soc": "112033", "label": "Fundraising Manager", "emoji": "🎗️" },
+      { "id": "fundraiser", "soc": "131131", "label": "Fundraiser", "emoji": "💌" },
+      { "id": "comms", "soc": "273031", "label": "Communications Specialist", "emoji": "🗞️" },
+      { "id": "program-asst", "soc": "211093", "label": "Program Assistant", "emoji": "🤲" }
+    ]}
+  ]
+}

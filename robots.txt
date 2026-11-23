@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://freereins.github.io/meeting-cost-calculator/sitemap.xml

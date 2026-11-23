@@ -1,0 +1,9 @@
+{
+  "name": "meeting-meter",
+  "private": true,
+  "description": "Real-time meeting cost calculator. Static site: open index.html, no build step. This file only exists for `npm test`.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'tests/*.test.js'"
+  }
+}

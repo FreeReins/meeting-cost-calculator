@@ -1,0 +1,3534 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meeting Meter: Real-Time Meeting Cost Calculator</title>
+  <meta name="description" content="How much does this meeting cost? Meeting Meter is a free, real-time meeting cost calculator. Pick who's in the room and watch the dollars climb, using real U.S. salary data. No sign-up, no data entry.">
+  <meta name="keywords" content="meeting cost calculator, meeting cost, cost of meetings, meeting timer, meeting ticker, salary calculator, productivity">
+  <meta name="theme-color" content="#0f1a14">
+  <link rel="canonical" href="https://freereins.github.io/meeting-cost-calculator/">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23127a3e%22/%3E%3Ctext%20x%3D%2232%22%20y%3D%2246%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2240%22%20font-weight%3D%22900%22%20text-anchor%3D%22middle%22%20fill%3D%22%23fff%22%3E%24%3C/text%3E%3C/svg%3E">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Meeting Meter: The Meeting Cost Calculator That Hurts to Watch">
+  <meta property="og:description" content="Every meeting has a price tag. Watch yours climb in real time, one cent at a time.">
+  <meta property="og:url" content="https://freereins.github.io/meeting-cost-calculator/">
+  <meta property="og:image" content="https://freereins.github.io/meeting-cost-calculator/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A big green-to-red dollar ticker counting up the cost of a meeting.">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Meeting Meter",
+    "alternateName": "Meeting Cost Calculator",
+    "url": "https://freereins.github.io/meeting-cost-calculator/",
+    "description": "A free, real-time meeting cost calculator that uses U.S. Bureau of Labor Statistics salary data to show how much a meeting costs as it happens.",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Any (web browser)",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+
+  <style>
+:root {
+  --bg: #f4f7f2;
+  --surface: #ffffff;
+  --surface-2: #eef3ec;
+  --text: #15201a;
+  --muted: #5b6b61;
+  --border: #d5dfd6;
+  --accent: #127a3e;
+  --accent-ink: #ffffff;
+  --danger: #b4231b;
+  --receipt-bg: #fffdf6;
+  --receipt-ink: #1d1d1b;
+  --heat: 0;
+  /* Ticker color goes green (hue 140) -> amber -> red (hue 0) as --heat rises */
+  --ticker: hsl(calc(140 - var(--heat) * 140) 70% calc(32% + var(--heat) * 6%));
+  --radius: 14px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1511;
+    --surface: #142019;
+    --surface-2: #1b2a21;
+    --text: #e6efe8;
+    --muted: #97a99d;
+    --border: #2a3b31;
+    --accent: #3ccf74;
+    --accent-ink: #062611;
+    --danger: #ff6b5e;
+    --receipt-bg: #f6f1e3;
+    --ticker: hsl(calc(140 - var(--heat) * 140) 75% calc(55% + var(--heat) * 3%));
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--sans);
+  min-height: 100vh;
+}
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 16px; top: 8px; z-index: 10; background: var(--surface); padding: 8px 12px; border-radius: 8px; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+#rain { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 50; }
+
+/* ---------- Header ---------- */
+.site-header {
+  max-width: 1040px; margin: 0 auto; padding: 20px 16px 8px;
+  display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between;
+}
+.brand { display: flex; gap: 12px; align-items: center; }
+.logo { font-size: 2.2rem; line-height: 1; }
+.brand .name { margin: 0; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
+.brand .tag { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 999px; }
+.tabs button {
+  border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  font-weight: 600; font-size: 0.92rem; color: var(--muted);
+}
+.tabs button[aria-current="page"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+main { max-width: 1040px; margin: 0 auto; padding: 8px 16px 32px; display: grid; gap: 16px; }
+main > * { min-width: 0; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow);
+}
+.card h2 { margin: 0 0 4px; font-size: 1.2rem; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer;
+  min-height: 44px; transition: transform 0.08s ease, background 0.15s ease;
+}
+.btn:hover { background: color-mix(in srgb, var(--surface-2) 80%, var(--accent)); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible, .tabs button:focus-visible, .chip:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn-go { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-go:hover { background: color-mix(in srgb, var(--accent) 88%, black); }
+.btn-stop { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-stop:hover { background: color-mix(in srgb, var(--danger) 88%, black); }
+.btn-ghost { background: transparent; }
+.btn-danger { color: var(--danger); }
+.btn-small { min-height: 36px; padding: 6px 12px; font-size: 0.9rem; }
+.btn-round { width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: 50%; font-size: 1.3rem; }
+
+/* ---------- Meter ---------- */
+.meter {
+  position: relative; text-align: center; padding: 28px 20px 20px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.meter::before { /* heat glow */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--ticker) calc(var(--heat) * 28%), transparent), transparent 70%);
+}
+.meter > * { position: relative; }
+.meter-title { margin: 0; min-height: 1.5em; color: var(--muted); font-weight: 600; }
+.cost {
+  display: block; font-family: var(--mono); font-weight: 800; letter-spacing: -0.03em;
+  font-size: clamp(3rem, 14vw, 7.5rem); line-height: 1.05; color: var(--ticker);
+  font-variant-numeric: tabular-nums;
+}
+.timer { margin: 4px 0 0; font-family: var(--mono); font-size: 1.3rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.paused-flag { display: none; margin-left: 10px; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.meter[data-status="paused"] .paused-flag { display: inline-block; }
+.meter[data-status="paused"] .cost { opacity: 0.55; }
+.quip { margin: 14px auto 0; font-size: 1.2rem; font-weight: 700; max-width: 36ch; min-height: 1.5em; text-wrap: balance; }
+.equiv { margin: 4px 0 0; color: var(--muted); min-height: 1.5em; }
+.stats {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+  margin: 18px auto 0; max-width: 640px;
+}
+.stats div { background: var(--surface-2); border-radius: 10px; padding: 8px; }
+.stats dt { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.stats dd { margin: 0; font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 20px; }
+#btnStart { font-size: 1.25rem; padding: 14px 28px; min-height: 56px; }
+.late { margin-top: 12px; color: var(--muted); font-size: 0.92rem; }
+.late summary { cursor: pointer; }
+.late input { width: 5em; padding: 4px 8px; margin: 6px 4px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.meter:not([data-status="idle"]) .late { display: none; }
+.quick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.meter[data-status="idle"] .quick, .meter[data-status="ended"] .quick { display: none; }
+
+.shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-8px, 2px, 0); }
+  40%, 60% { transform: translate3d(8px, -2px, 0); }
+}
+.siren .meter { animation: siren 1.2s ease-in-out infinite; }
+@keyframes siren {
+  0%, 100% { box-shadow: var(--shadow), 0 0 0 0 rgb(255 40 40 / 0); }
+  50% { box-shadow: var(--shadow), 0 0 0 10px rgb(255 40 40 / 0.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shake, .siren .meter { animation: none; }
+}
+
+/* Presentation mode (Fullscreen API, or fallback class) */
+.meter:fullscreen, .meter.fake-fullscreen {
+  display: flex; flex-direction: column; justify-content: center; border: 0; border-radius: 0;
+  background: var(--bg); padding: 4vh 4vw;
+}
+.meter.fake-fullscreen { position: fixed; inset: 0; z-index: 40; }
+.meter:fullscreen .cost, .meter.fake-fullscreen .cost { font-size: clamp(4rem, 17vw, 16rem); }
+.meter:fullscreen .quip, .meter.fake-fullscreen .quip { font-size: clamp(1.4rem, 3.2vw, 2.6rem); max-width: 40ch; }
+.meter:fullscreen .timer, .meter.fake-fullscreen .timer { font-size: clamp(1.4rem, 3vw, 2.4rem); }
+.meter:fullscreen .late, .meter:fullscreen .quick,
+.meter.fake-fullscreen .late, .meter.fake-fullscreen .quick { display: none; }
+
+/* ---------- Attendees ---------- */
+.att-head { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; justify-content: space-between; }
+.att-summary { margin: 0; font-weight: 600; color: var(--muted); }
+.att-row { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin: 12px 0; }
+.headcount { display: flex; align-items: center; gap: 8px; }
+.headcount .label { font-weight: 600; margin-right: 4px; }
+.headcount output { min-width: 2.5ch; text-align: center; font-family: var(--mono); font-size: 1.4rem; font-weight: 700; }
+.industry { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; max-width: 100%; }
+select, input[type="text"], input[type="number"] {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); min-height: 40px;
+}
+.industry select { min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+.chip-group { margin-top: 14px; }
+.chip-group h3 { margin: 0 0 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; min-height: 40px;
+  font-size: 0.92rem; text-align: left;
+}
+.chip:hover { border-color: var(--accent); }
+.chip .pay { color: var(--muted); font-family: var(--mono); font-size: 0.8rem; }
+.chip .count {
+  display: none; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 0.8rem;
+  align-items: center; justify-content: center;
+}
+.chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.chip.on .count { display: inline-flex; }
+.chip-wrap { display: inline-flex; align-items: center; gap: 2px; }
+.chip-minus {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; line-height: 1; font-weight: 700;
+}
+.est-dot { color: #b7791f; font-weight: 800; }
+.options .title-input input { width: min(320px, 70vw); }
+.title-input { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; }
+.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* ---------- Post-mortem ---------- */
+.pm-form { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 14px 0; }
+.pm-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 0.9rem; }
+.pm-form input { width: 6em; }
+.pm-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pm-results div { background: var(--surface-2); border-radius: 10px; padding: 12px; }
+.pm-results span { display: block; font-size: 0.8rem; color: var(--muted); }
+.pm-results strong { font-family: var(--mono); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+#pmYear { color: var(--danger); }
+#view-postmortem .quip { margin: 16px 0; max-width: none; }
+
+/* ---------- Hall of Shame ---------- */
+.shame-head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.seg { display: inline-flex; background: var(--surface-2); padding: 3px; border-radius: 10px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.totals div { background: var(--surface-2); border-radius: 10px; padding: 12px; }
+.totals span { display: block; font-size: 0.8rem; color: var(--muted); }
+.totals strong { font-family: var(--mono); font-size: 1.3rem; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.badge { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); font-size: 0.85rem; border: 1px solid var(--border); }
+.badge.locked { opacity: 0.4; filter: grayscale(1); }
+.board { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; counter-reset: rank; }
+.board li {
+  display: grid; grid-template-columns: 2.2em 1fr auto; gap: 4px 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; counter-increment: rank;
+}
+.board li::before { content: counter(rank); font-family: var(--mono); font-weight: 800; color: var(--muted); font-size: 1.1rem; text-align: center; }
+.board li:nth-child(1)::before { content: "🥇"; }
+.board li:nth-child(2)::before { content: "🥈"; }
+.board li:nth-child(3)::before { content: "🥉"; }
+.board.recent li::before { content: "•"; }
+.board .entry-title { font-weight: 700; border: 0; background: transparent; padding: 2px 4px; margin-left: -4px; min-height: 0; width: 100%; border-radius: 6px; }
+.board .entry-title:hover, .board .entry-title:focus { background: var(--surface-2); }
+.board .meta { grid-column: 2; font-size: 0.85rem; color: var(--muted); }
+.board .amt { grid-row: 1 / span 2; grid-column: 3; text-align: right; font-family: var(--mono); font-weight: 800; font-size: 1.1rem; }
+.board .del { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.8rem; padding: 2px 0; }
+.board .empty { display: block; text-align: center; color: var(--muted); padding: 24px; }
+.board .empty::before { content: none; }
+.board-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- Receipt dialog ---------- */
+dialog {
+  border: 0; border-radius: var(--radius); padding: 20px; max-width: min(440px, calc(100vw - 32px));
+  background: var(--surface); color: var(--text); box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
+}
+dialog::backdrop { background: rgb(0 0 0 / 0.55); }
+.receipt {
+  background: var(--receipt-bg); color: var(--receipt-ink); font-family: var(--mono); font-size: 0.8rem; line-height: 1.45;
+  padding: 18px 16px; margin: 0 auto 14px; width: fit-content; max-width: 100%; white-space: pre; overflow-x: auto; border-radius: 4px;
+  mask: conic-gradient(from 135deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 7px repeat-x,
+        linear-gradient(#000 0 0) top / 100% calc(100% - 7px) no-repeat;
+}
+.record { margin: 0 0 10px; text-align: center; font-weight: 800; color: var(--danger); font-size: 1.1rem; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+/* ---------- Toast / footer ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600;
+  transition: opacity 0.2s ease, transform 0.2s ease; z-index: 60; max-width: calc(100vw - 32px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.site-footer { max-width: 1040px; margin: 0 auto; padding: 8px 16px 40px; color: var(--muted); font-size: 0.85rem; }
+.site-footer p { margin: 4px 0; }
+kbd { font-family: var(--mono); font-size: 0.8em; padding: 1px 5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+
+/* ---------- Small screens ---------- */
+@media (max-width: 640px) {
+  .stats, .totals, .pm-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pm-results div:last-child { grid-column: span 2; }
+  .tabs { width: 100%; justify-content: space-between; }
+  .tabs button { flex: 1; padding: 8px 6px; font-size: 0.85rem; }
+  .card { padding: 16px; }
+  .controls .btn { flex: 1 1 auto; }
+}
+  </style>
+</head>
+<body>
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <a class="skip" href="#meter">Skip to the meter</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">💸</span>
+      <div>
+        <p class="name">Meeting Meter</p>
+        <p class="tag">The meeting cost calculator that hurts to watch</p>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      <button type="button" data-view="live" aria-current="page">Live meter</button>
+      <button type="button" data-view="postmortem">Post-mortem</button>
+      <button type="button" data-view="shame">Hall of Shame</button>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="visually-hidden">Meeting Meter: real-time meeting cost calculator</h1>
+
+    <!-- LIVE METER -->
+    <section id="view-live" class="view" aria-labelledby="meter-title">
+      <div id="meter" class="meter" data-status="idle">
+        <h2 id="meter-title" class="visually-hidden">Live meeting cost</h2>
+        <p class="meter-title" id="meterMeetingTitle"></p>
+        <output class="cost" id="cost" aria-label="Meeting cost so far">$0.00</output>
+        <p class="timer"><span id="timer">00:00:00</span><span class="paused-flag">paused</span></p>
+        <p class="quip" id="quip" aria-live="polite">Hit start. Then pretend you're paying attention.</p>
+        <p class="equiv" id="equiv">&nbsp;</p>
+        <dl class="stats">
+          <div><dt>Per minute</dt><dd id="statMinute">$0.00</dd></div>
+          <div><dt>Per hour</dt><dd id="statHour">$0.00</dd></div>
+          <div><dt>Per person</dt><dd id="statPerson">$0.00</dd></div>
+          <div><dt>Next tier</dt><dd id="statNext">–</dd></div>
+        </dl>
+
+        <div class="controls">
+          <button type="button" class="btn btn-go" id="btnStart">▶ Start the meter</button>
+          <button type="button" class="btn" id="btnPause" hidden>⏸ Pause</button>
+          <button type="button" class="btn btn-stop" id="btnEnd" hidden>⏹ End meeting</button>
+          <button type="button" class="btn btn-ghost" id="btnFullscreen" title="Presentation mode (F)">⛶ Present</button>
+          <button type="button" class="btn btn-ghost" id="btnSound" aria-pressed="false" title="Cha-ching on every new tier">🔇 Sound</button>
+        </div>
+
+        <details class="late" id="lateBox">
+          <summary>Already running late?</summary>
+          <label>We started <input type="number" id="startOffset" min="0" max="600" step="1" inputmode="numeric" placeholder="0"> minutes ago</label>
+        </details>
+
+        <div class="quick" aria-label="Quick headcount changes during the meeting">
+          <button type="button" class="btn btn-small" id="btnJoin">🚪 Someone joined late</button>
+          <button type="button" class="btn btn-small" id="btnLeave">👋 Someone dropped off</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- POST-MORTEM -->
+    <section id="view-postmortem" class="view" hidden aria-labelledby="pm-title">
+      <div class="card">
+        <h2 id="pm-title">Post-mortem: what did that meeting cost?</h2>
+        <p class="muted">Already over? Recurring? Pick the people below, then enter how long it ran.</p>
+        <form class="pm-form" id="pmForm">
+          <label>Hours <input type="number" id="pmHours" min="0" max="24" value="1" inputmode="numeric"></label>
+          <label>Minutes <input type="number" id="pmMinutes" min="0" max="59" value="0" inputmode="numeric"></label>
+          <label>How often?
+            <select id="pmRecurrence"></select>
+          </label>
+        </form>
+        <div class="pm-results">
+          <div><span>Per meeting</span><strong id="pmEvent">$0.00</strong></div>
+          <div><span>Per year</span><strong id="pmYear">$0.00</strong></div>
+          <div><span>Hours per year, per person</span><strong id="pmHoursYear">0</strong></div>
+        </div>
+        <p class="quip" id="pmQuip"></p>
+        <button type="button" class="btn" id="pmSave">🏆 Add to Hall of Shame</button>
+      </div>
+    </section>
+
+    <!-- ATTENDEES (shared by live + post-mortem) -->
+    <section id="attendees" class="card attendees" aria-labelledby="att-title">
+      <div class="att-head">
+        <h2 id="att-title">Who's in the room?</h2>
+        <p class="att-summary" id="attSummary"></p>
+      </div>
+
+      <div class="att-row">
+        <div class="headcount">
+          <span class="label">Quick headcount</span>
+          <button type="button" class="btn btn-round" id="hcMinus" aria-label="One fewer generic attendee">−</button>
+          <output id="hcValue">5</output>
+          <button type="button" class="btn btn-round" id="hcPlus" aria-label="One more generic attendee">+</button>
+          <span class="muted small" id="hcHint">generic attendees</span>
+        </div>
+        <label class="industry">Industry
+          <select id="industry"></select>
+        </label>
+      </div>
+
+      <p class="muted small">Want more accuracy? Tap roles to add them. Changes count from the moment you make them, so you can adjust mid-meeting.</p>
+      <div id="chips"></div>
+
+      <div class="att-row options">
+        <label class="title-input">Meeting name <input type="text" id="title" maxlength="80" placeholder="(we'll think of something)"></label>
+        <label class="check"><input type="checkbox" id="loaded"> Fully loaded cost <span class="muted small">(×1.4: benefits, taxes, office snacks)</span></label>
+        <button type="button" class="btn btn-ghost" id="btnShare">🔗 Copy invite link</button>
+        <button type="button" class="btn btn-ghost" id="btnReset">↺ Reset room</button>
+      </div>
+    </section>
+
+    <!-- HALL OF SHAME -->
+    <section id="view-shame" class="view" hidden aria-labelledby="shame-title">
+      <div class="card">
+        <div class="shame-head">
+          <h2 id="shame-title">🏆 Hall of Shame</h2>
+          <div class="seg" role="group" aria-label="Sort">
+            <button type="button" data-sort="cost" aria-pressed="true">Most expensive</button>
+            <button type="button" data-sort="recent" aria-pressed="false">Most recent</button>
+          </div>
+        </div>
+        <div class="totals" id="totals"></div>
+        <div class="badges" id="badges"></div>
+        <ol class="board" id="board"></ol>
+        <p class="muted small" id="storageNote">Saved only in this browser. Nobody else can see it (unless you show them, which you should).</p>
+        <div class="board-actions">
+          <button type="button" class="btn btn-ghost" id="btnExport">⬇ Export</button>
+          <label class="btn btn-ghost">⬆ Import <input type="file" id="importFile" accept="application/json,.json" hidden></label>
+          <button type="button" class="btn btn-ghost btn-danger" id="btnClear">🗑 Clear history</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="receiptDialog" aria-labelledby="receiptHeading">
+    <h2 id="receiptHeading" class="visually-hidden">Meeting receipt</h2>
+    <p class="record" id="recordBanner" hidden>🚨 New personal worst! 🚨</p>
+    <pre class="receipt" id="receipt"></pre>
+    <label class="title-input">Name this disaster <input type="text" id="receiptTitle" maxlength="80"></label>
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="btnCopyReceipt">📋 Copy</button>
+      <button type="button" class="btn" id="btnShareReceipt" hidden>📤 Share</button>
+      <button type="button" class="btn" id="btnSaveReceipt">🖼 Save image</button>
+      <button type="button" class="btn btn-go" id="btnCloseReceipt">Done</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <footer class="site-footer">
+    <p>Salaries: U.S. Bureau of Labor Statistics, <abbr title="Occupational Employment and Wage Statistics">OEWS</abbr> <span id="dataDate"></span> (annual mean wage ÷ 2,080 hours). Roles marked <span class="est-dot">≈</span> are low-end estimates.</p>
+    <p>Everything runs in your browser. No accounts, no tracking, no servers. Just regret.</p>
+    <p><kbd>Space</kbd> pause · <kbd>F</kbd> present · <kbd>+</kbd>/<kbd>−</kbd> headcount · <a href="https://github.com/freereins/meeting-cost-calculator">Source on GitHub</a></p>
+  </footer>
+<!-- Everything lives in this one file so it works when opened straight from disk, even in
+     sandboxed (e.g. Flatpak) browsers that can only see the file itself. Each <script data-src>
+     block used to be a separate file; order matters. The salaries block is generated by
+     scripts/build_salaries.py. -->
+<script data-src="js/data/salaries.js">
+// GENERATED by scripts/build_salaries.py. Do not edit by hand.
+// Annual wages in USD. `est` = BLS had no figure; low-end estimate used.
+(globalThis.MM = globalThis.MM || {}).salaries = {
+ "source": "U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics (OEWS), national",
+ "period": "May 2025",
+ "generated": "2026-11-22",
+ "hoursPerYear": 2080,
+ "general": {
+  "id": "all",
+  "label": "Every Industry (U.S. average)",
+  "emoji": "🇺🇸",
+  "roles": [
+   {
+    "id": "generic",
+    "label": "Generic Attendee",
+    "emoji": "🙂",
+    "soc": "00-0000",
+    "mean": 69770,
+    "range": [
+     37590,
+     80520
+    ]
+   },
+   {
+    "id": "ceo",
+    "label": "The CEO",
+    "emoji": "👑",
+    "soc": "11-1011",
+    "mean": 269630,
+    "range": [
+     129540,
+     356200
+    ]
+   },
+   {
+    "id": "middle-mgr",
+    "label": "Middle Manager",
+    "emoji": "📋",
+    "soc": "11-1021",
+    "mean": 134940,
+    "range": [
+     72320,
+     167280
+    ]
+   },
+   {
+    "id": "it-director",
+    "label": "IT / Engineering Director",
+    "emoji": "🧭",
+    "soc": "11-3021",
+    "mean": 192160,
+    "range": [
+     138060,
+     220730
+    ]
+   },
+   {
+    "id": "eng-mgr",
+    "label": "Engineering Manager",
+    "emoji": "🛠️",
+    "soc": "11-9041",
+    "mean": 181540,
+    "range": [
+     139360,
+     212500
+    ]
+   },
+   {
+    "id": "pm",
+    "label": "Product / Marketing Manager",
+    "emoji": "🗺️",
+    "soc": "11-2021",
+    "mean": 177770,
+    "range": [
+     123020,
+     216410
+    ]
+   },
+   {
+    "id": "sales-mgr",
+    "label": "Sales Manager",
+    "emoji": "📈",
+    "soc": "11-2022",
+    "mean": 164350,
+    "range": [
+     100360,
+     207340
+    ]
+   },
+   {
+    "id": "fin-mgr",
+    "label": "Finance Manager",
+    "emoji": "💼",
+    "soc": "11-3031",
+    "mean": 186910,
+    "range": [
+     125490,
+     219980
+    ]
+   },
+   {
+    "id": "hr-mgr",
+    "label": "HR Manager",
+    "emoji": "🤝",
+    "soc": "11-3121",
+    "mean": 164230,
+    "range": [
+     111110,
+     199290
+    ]
+   },
+   {
+    "id": "project-mgr",
+    "label": "Project Manager",
+    "emoji": "📆",
+    "soc": "13-1082",
+    "mean": 110740,
+    "range": [
+     78440,
+     133100
+    ]
+   },
+   {
+    "id": "consultant",
+    "label": "Consultant",
+    "emoji": "🕴️",
+    "soc": "13-1111",
+    "mean": 113790,
+    "range": [
+     77950,
+     133370
+    ]
+   },
+   {
+    "id": "recruiter",
+    "label": "Recruiter / HR",
+    "emoji": "🔎",
+    "soc": "13-1071",
+    "mean": 81990,
+    "range": [
+     58610,
+     99380
+    ]
+   },
+   {
+    "id": "accountant",
+    "label": "Accountant",
+    "emoji": "🧮",
+    "soc": "13-2011",
+    "mean": 94750,
+    "range": [
+     67020,
+     109810
+    ]
+   },
+   {
+    "id": "fin-analyst",
+    "label": "Financial Analyst",
+    "emoji": "📊",
+    "soc": "13-2051",
+    "mean": 116800,
+    "range": [
+     79290,
+     133340
+    ]
+   },
+   {
+    "id": "marketing",
+    "label": "Marketing Specialist",
+    "emoji": "📣",
+    "soc": "13-1161",
+    "mean": 89490,
+    "range": [
+     58350,
+     108310
+    ]
+   },
+   {
+    "id": "swe",
+    "label": "Software Engineer",
+    "emoji": "💻",
+    "soc": "15-1252",
+    "mean": 148100,
+    "range": [
+     105210,
+     171980
+    ]
+   },
+   {
+    "id": "qa",
+    "label": "QA Engineer",
+    "emoji": "🐛",
+    "soc": "15-1253",
+    "mean": 111490,
+    "range": [
+     80310,
+     133180
+    ]
+   },
+   {
+    "id": "security",
+    "label": "Security Analyst",
+    "emoji": "🔐",
+    "soc": "15-1212",
+    "mean": 132510,
+    "range": [
+     97810,
+     163500
+    ]
+   },
+   {
+    "id": "sre",
+    "label": "Sysadmin / SRE",
+    "emoji": "🚒",
+    "soc": "15-1244",
+    "mean": 103680,
+    "range": [
+     78010,
+     126640
+    ]
+   },
+   {
+    "id": "dba",
+    "label": "Database Admin",
+    "emoji": "🗄️",
+    "soc": "15-1242",
+    "mean": 110090,
+    "range": [
+     79610,
+     135460
+    ]
+   },
+   {
+    "id": "data-sci",
+    "label": "Data Scientist",
+    "emoji": "🧪",
+    "soc": "15-2051",
+    "mean": 126800,
+    "range": [
+     85660,
+     158880
+    ]
+   },
+   {
+    "id": "designer",
+    "label": "UI/UX Designer",
+    "emoji": "🎨",
+    "soc": "15-1255",
+    "mean": 117490,
+    "range": [
+     73290,
+     158820
+    ]
+   },
+   {
+    "id": "helpdesk",
+    "label": "IT Help Desk",
+    "emoji": "🔌",
+    "soc": "15-1232",
+    "mean": 67330,
+    "range": [
+     49000,
+     79040
+    ]
+   },
+   {
+    "id": "lawyer",
+    "label": "Lawyer",
+    "emoji": "⚖️",
+    "soc": "23-1011",
+    "mean": 185840,
+    "range": [
+     102990,
+     221370
+    ]
+   },
+   {
+    "id": "sales-rep",
+    "label": "Sales Rep",
+    "emoji": "🤑",
+    "soc": "41-4012",
+    "mean": 82530,
+    "range": [
+     50470,
+     99640
+    ]
+   },
+   {
+    "id": "support",
+    "label": "Customer Support",
+    "emoji": "🎧",
+    "soc": "43-4051",
+    "mean": 46590,
+    "range": [
+     36870,
+     51780
+    ]
+   },
+   {
+    "id": "exec-asst",
+    "label": "Executive Assistant",
+    "emoji": "🗂️",
+    "soc": "43-6011",
+    "mean": 79140,
+    "range": [
+     61390,
+     94390
+    ]
+   },
+   {
+    "id": "admin",
+    "label": "Admin Assistant",
+    "emoji": "📎",
+    "soc": "43-6014",
+    "mean": 49350,
+    "range": [
+     38830,
+     58000
+    ]
+   }
+  ]
+ },
+ "industries": [
+  {
+   "id": "tech",
+   "label": "Tech & IT Services",
+   "emoji": "💻",
+   "naics": "5415",
+   "roles": [
+    {
+     "id": "swe",
+     "label": "Software Engineer",
+     "emoji": "💻",
+     "soc": "15-1252",
+     "mean": 142030,
+     "range": [
+      101820,
+      169310
+     ]
+    },
+    {
+     "id": "qa",
+     "label": "QA Engineer",
+     "emoji": "🐛",
+     "soc": "15-1253",
+     "mean": 105650,
+     "range": [
+      75830,
+      128850
+     ]
+    },
+    {
+     "id": "it-director",
+     "label": "Engineering Director",
+     "emoji": "🧭",
+     "soc": "11-3021",
+     "mean": 195120,
+     "range": [
+      140970,
+      223580
+     ]
+    },
+    {
+     "id": "sys-analyst",
+     "label": "Systems Analyst",
+     "emoji": "🧩",
+     "soc": "15-1211",
+     "mean": 119460,
+     "range": [
+      82710,
+      149760
+     ]
+    },
+    {
+     "id": "sre",
+     "label": "Sysadmin / SRE",
+     "emoji": "🚒",
+     "soc": "15-1244",
+     "mean": 108570,
+     "range": [
+      79850,
+      131090
+     ]
+    }
+   ]
+  },
+  {
+   "id": "consulting",
+   "label": "Management Consulting",
+   "emoji": "🕴️",
+   "naics": "5416",
+   "roles": [
+    {
+     "id": "consultant",
+     "label": "Consultant",
+     "emoji": "🕴️",
+     "soc": "13-1111",
+     "mean": 123080,
+     "range": [
+      76070,
+      161980
+     ]
+    },
+    {
+     "id": "engagement-mgr",
+     "label": "Engagement Manager",
+     "emoji": "📋",
+     "soc": "11-1021",
+     "mean": 176060,
+     "range": [
+      94890,
+      218080
+     ]
+    },
+    {
+     "id": "managing-partner",
+     "label": "Managing Partner",
+     "emoji": "👑",
+     "soc": "11-1011",
+     "mean": 212120,
+     "range": [
+      62400,
+      322940
+     ]
+    },
+    {
+     "id": "data-sci",
+     "label": "Data Scientist",
+     "emoji": "🧪",
+     "soc": "15-2051",
+     "mean": 126100,
+     "range": [
+      86100,
+      161100
+     ]
+    },
+    {
+     "id": "research",
+     "label": "Research Analyst",
+     "emoji": "🔬",
+     "soc": "13-1161",
+     "mean": 87090,
+     "range": [
+      57990,
+      103280
+     ]
+    }
+   ]
+  },
+  {
+   "id": "legal",
+   "label": "Law Firms",
+   "emoji": "⚖️",
+   "naics": "5411",
+   "roles": [
+    {
+     "id": "lawyer",
+     "label": "Lawyer",
+     "emoji": "⚖️",
+     "soc": "23-1011",
+     "mean": 191320,
+     "range": [
+      100510,
+      225160
+     ]
+    },
+    {
+     "id": "senior-partner",
+     "label": "Senior Partner",
+     "emoji": "👑",
+     "soc": "11-1011",
+     "mean": 315520,
+     "range": [
+      123020,
+      429790
+     ]
+    },
+    {
+     "id": "paralegal",
+     "label": "Paralegal",
+     "emoji": "📚",
+     "soc": "23-2011",
+     "mean": 67500,
+     "range": [
+      49320,
+      78240
+     ]
+    },
+    {
+     "id": "legal-sec",
+     "label": "Legal Secretary",
+     "emoji": "🗂️",
+     "soc": "43-6012",
+     "mean": 60790,
+     "range": [
+      43880,
+      73150
+     ]
+    },
+    {
+     "id": "receptionist",
+     "label": "Receptionist",
+     "emoji": "🛎️",
+     "soc": "43-4171",
+     "mean": 42950,
+     "range": [
+      36730,
+      48570
+     ]
+    }
+   ]
+  },
+  {
+   "id": "advertising",
+   "label": "Advertising & Marketing Agencies",
+   "emoji": "📣",
+   "naics": "5418",
+   "roles": [
+    {
+     "id": "ad-mgr",
+     "label": "Advertising Manager",
+     "emoji": "📺",
+     "soc": "11-2011",
+     "mean": 151900,
+     "range": [
+      93520,
+      192480
+     ]
+    },
+    {
+     "id": "art-director",
+     "label": "Art Director",
+     "emoji": "🎬",
+     "soc": "27-1011",
+     "mean": 132260,
+     "range": [
+      82530,
+      165550
+     ]
+    },
+    {
+     "id": "graphic-designer",
+     "label": "Graphic Designer",
+     "emoji": "🎨",
+     "soc": "27-1024",
+     "mean": 66190,
+     "range": [
+      48450,
+      78310
+     ]
+    },
+    {
+     "id": "pr",
+     "label": "PR Specialist",
+     "emoji": "🗞️",
+     "soc": "27-3031",
+     "mean": 96500,
+     "range": [
+      60910,
+      104570
+     ]
+    },
+    {
+     "id": "ad-sales",
+     "label": "Ad Sales Agent",
+     "emoji": "🤑",
+     "soc": "41-3011",
+     "mean": 81320,
+     "range": [
+      49040,
+      100970
+     ]
+    }
+   ]
+  },
+  {
+   "id": "finance",
+   "label": "Wall Street & Investing",
+   "emoji": "📈",
+   "naics": "523",
+   "roles": [
+    {
+     "id": "banker",
+     "label": "Securities Trader / Banker",
+     "emoji": "🐂",
+     "soc": "41-3031",
+     "mean": 146090,
+     "range": [
+      73300,
+      179050
+     ]
+    },
+    {
+     "id": "fin-analyst",
+     "label": "Financial Analyst",
+     "emoji": "📊",
+     "soc": "13-2051",
+     "mean": 141480,
+     "range": [
+      87240,
+      170700
+     ]
+    },
+    {
+     "id": "advisor",
+     "label": "Financial Advisor",
+     "emoji": "🧑‍💼",
+     "soc": "13-2052",
+     "mean": 169520,
+     "range": [
+      76420,
+      204890
+     ]
+    },
+    {
+     "id": "fin-mgr",
+     "label": "Finance Manager",
+     "emoji": "💼",
+     "soc": "11-3031",
+     "mean": 258870,
+     "range": [
+      168650,
+      333980
+     ]
+    },
+    {
+     "id": "ceo",
+     "label": "Fund CEO",
+     "emoji": "👑",
+     "soc": "11-1011",
+     "mean": 480300,
+     "range": [
+      266390,
+      747340
+     ]
+    }
+   ]
+  },
+  {
+   "id": "banking",
+   "label": "Banking & Lending",
+   "emoji": "🏦",
+   "naics": "522",
+   "roles": [
+    {
+     "id": "loan-officer",
+     "label": "Loan Officer",
+     "emoji": "🏠",
+     "soc": "13-2072",
+     "mean": 85840,
+     "range": [
+      51070,
+      103010
+     ]
+    },
+    {
+     "id": "credit-analyst",
+     "label": "Credit Analyst",
+     "emoji": "💳",
+     "soc": "13-2041",
+     "mean": 98210,
+     "range": [
+      64990,
+      117420
+     ]
+    },
+    {
+     "id": "teller",
+     "label": "Bank Teller",
+     "emoji": "🪙",
+     "soc": "43-3071",
+     "mean": 42280,
+     "range": [
+      37010,
+      46520
+     ]
+    },
+    {
+     "id": "branch-mgr",
+     "label": "Branch / Finance Manager",
+     "emoji": "💼",
+     "soc": "11-3031",
+     "mean": 161190,
+     "range": [
+      98390,
+      207210
+     ]
+    },
+    {
+     "id": "support",
+     "label": "Customer Service Rep",
+     "emoji": "🎧",
+     "soc": "43-4051",
+     "mean": 49430,
+     "range": [
+      42590,
+      55880
+     ]
+    }
+   ]
+  },
+  {
+   "id": "insurance",
+   "label": "Insurance",
+   "emoji": "☂️",
+   "naics": "524",
+   "roles": [
+    {
+     "id": "actuary",
+     "label": "Actuary",
+     "emoji": "🎲",
+     "soc": "15-2011",
+     "mean": 144160,
+     "range": [
+      99090,
+      170980
+     ]
+    },
+    {
+     "id": "underwriter",
+     "label": "Underwriter",
+     "emoji": "✍️",
+     "soc": "13-2053",
+     "mean": 94190,
+     "range": [
+      64520,
+      113140
+     ]
+    },
+    {
+     "id": "adjuster",
+     "label": "Claims Adjuster",
+     "emoji": "🔍",
+     "soc": "13-1031",
+     "mean": 79010,
+     "range": [
+      60680,
+      97140
+     ]
+    },
+    {
+     "id": "agent",
+     "label": "Insurance Agent",
+     "emoji": "🤝",
+     "soc": "41-3021",
+     "mean": 81580,
+     "range": [
+      46930,
+      96910
+     ]
+    },
+    {
+     "id": "support",
+     "label": "Customer Service Rep",
+     "emoji": "🎧",
+     "soc": "43-4051",
+     "mean": 49520,
+     "range": [
+      40080,
+      57780
+     ]
+    }
+   ]
+  },
+  {
+   "id": "corporate",
+   "label": "Corporate HQ",
+   "emoji": "🏢",
+   "naics": "551",
+   "roles": [
+    {
+     "id": "ceo",
+     "label": "The CEO",
+     "emoji": "👑",
+     "soc": "11-1011",
+     "mean": 413600,
+     "range": [
+      211550,
+      526360
+     ]
+    },
+    {
+     "id": "vp",
+     "label": "VP of Operations",
+     "emoji": "🧑‍💼",
+     "soc": "11-1021",
+     "mean": 197930,
+     "range": [
+      105940,
+      240220
+     ]
+    },
+    {
+     "id": "hr-mgr",
+     "label": "HR Manager",
+     "emoji": "🤝",
+     "soc": "11-3121",
+     "mean": 184820,
+     "range": [
+      127380,
+      215970
+     ]
+    },
+    {
+     "id": "project-mgr",
+     "label": "Project Manager",
+     "emoji": "📆",
+     "soc": "13-1082",
+     "mean": 122540,
+     "range": [
+      94160,
+      145290
+     ]
+    },
+    {
+     "id": "exec-asst",
+     "label": "Executive Assistant",
+     "emoji": "🗂️",
+     "soc": "43-6011",
+     "mean": 88510,
+     "range": [
+      73900,
+      100760
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hospitals",
+   "label": "Hospitals",
+   "emoji": "🏥",
+   "naics": "622",
+   "roles": [
+    {
+     "id": "physician",
+     "label": "Physician",
+     "emoji": "🩺",
+     "soc": "29-1229",
+     "mean": 218610,
+     "range": [
+      73870,
+      375430
+     ]
+    },
+    {
+     "id": "pa",
+     "label": "Physician Assistant",
+     "emoji": "💉",
+     "soc": "29-1071",
+     "mean": 145850,
+     "range": [
+      129490,
+      168540
+     ]
+    },
+    {
+     "id": "nurse",
+     "label": "Registered Nurse",
+     "emoji": "👩‍⚕️",
+     "soc": "29-1141",
+     "mean": 104420,
+     "range": [
+      81780,
+      118940
+     ]
+    },
+    {
+     "id": "cna",
+     "label": "Nursing Assistant",
+     "emoji": "🩹",
+     "soc": "31-1131",
+     "mean": 43480,
+     "range": [
+      37870,
+      47510
+     ]
+    },
+    {
+     "id": "health-admin",
+     "label": "Hospital Administrator",
+     "emoji": "📋",
+     "soc": "11-9111",
+     "mean": 154470,
+     "range": [
+      106830,
+      171890
+     ]
+    }
+   ]
+  },
+  {
+   "id": "education",
+   "label": "Schools & Universities",
+   "emoji": "🎓",
+   "naics": "611",
+   "roles": [
+    {
+     "id": "teacher-elem",
+     "label": "Elementary Teacher",
+     "emoji": "🍎",
+     "soc": "25-2021",
+     "mean": 72700,
+     "range": [
+      57770,
+      81480
+     ]
+    },
+    {
+     "id": "teacher-hs",
+     "label": "High School Teacher",
+     "emoji": "📐",
+     "soc": "25-2031",
+     "mean": 76350,
+     "range": [
+      60000,
+      92620
+     ]
+    },
+    {
+     "id": "principal",
+     "label": "Principal",
+     "emoji": "🏫",
+     "soc": "11-9032",
+     "mean": 116080,
+     "range": [
+      86060,
+      134590
+     ]
+    },
+    {
+     "id": "dean",
+     "label": "Dean / University Admin",
+     "emoji": "🎓",
+     "soc": "11-9033",
+     "mean": 126190,
+     "range": [
+      80830,
+      143400
+     ]
+    },
+    {
+     "id": "ta",
+     "label": "Teaching Assistant",
+     "emoji": "✏️",
+     "soc": "25-9045",
+     "mean": 38580,
+     "range": [
+      31110,
+      45830
+     ]
+    }
+   ]
+  },
+  {
+   "id": "federal",
+   "label": "Federal Government",
+   "emoji": "🏛️",
+   "naics": "9991",
+   "roles": [
+    {
+     "id": "deputy",
+     "label": "Deputy Assistant Director",
+     "emoji": "🏛️",
+     "soc": "11-1021",
+     "mean": 160380,
+     "range": [
+      141130,
+      185220
+     ]
+    },
+    {
+     "id": "mgmt-analyst",
+     "label": "Management Analyst",
+     "emoji": "📑",
+     "soc": "13-1111",
+     "mean": 116100,
+     "range": [
+      95470,
+      134220
+     ]
+    },
+    {
+     "id": "compliance",
+     "label": "Compliance Officer",
+     "emoji": "✅",
+     "soc": "13-1041",
+     "mean": 102060,
+     "range": [
+      78170,
+      122760
+     ]
+    },
+    {
+     "id": "security",
+     "label": "Security Analyst",
+     "emoji": "🔐",
+     "soc": "15-1212",
+     "mean": 150930,
+     "range": [
+      102810,
+      191940
+     ]
+    },
+    {
+     "id": "clerk",
+     "label": "Office Clerk",
+     "emoji": "🗃️",
+     "soc": "43-9061",
+     "mean": 56450,
+     "range": [
+      50940,
+      61130
+     ]
+    }
+   ]
+  },
+  {
+   "id": "local-gov",
+   "label": "Local Government",
+   "emoji": "🏙️",
+   "naics": "9993",
+   "roles": [
+    {
+     "id": "council",
+     "label": "City Council Member",
+     "emoji": "🎙️",
+     "soc": "11-1031",
+     "mean": 40000,
+     "est": true
+    },
+    {
+     "id": "police",
+     "label": "Police Officer",
+     "emoji": "👮",
+     "soc": "33-3051",
+     "mean": 78460,
+     "range": [
+      58870,
+      97520
+     ]
+    },
+    {
+     "id": "firefighter",
+     "label": "Firefighter",
+     "emoji": "🚒",
+     "soc": "33-2011",
+     "mean": 64980,
+     "range": [
+      45480,
+      78010
+     ]
+    },
+    {
+     "id": "civil-eng",
+     "label": "Civil Engineer",
+     "emoji": "🌉",
+     "soc": "17-2051",
+     "mean": 118000,
+     "range": [
+      96610,
+      134340
+     ]
+    },
+    {
+     "id": "clerk",
+     "label": "Office Clerk",
+     "emoji": "🗃️",
+     "soc": "43-9061",
+     "mean": 49610,
+     "range": [
+      38730,
+      58640
+     ]
+    }
+   ]
+  },
+  {
+   "id": "construction",
+   "label": "Construction",
+   "emoji": "🏗️",
+   "naics": "236",
+   "roles": [
+    {
+     "id": "construction-mgr",
+     "label": "Construction Manager",
+     "emoji": "👷",
+     "soc": "11-9021",
+     "mean": 122870,
+     "range": [
+      84680,
+      150960
+     ]
+    },
+    {
+     "id": "foreman",
+     "label": "Foreman",
+     "emoji": "🦺",
+     "soc": "47-1011",
+     "mean": 85390,
+     "range": [
+      64030,
+      99860
+     ]
+    },
+    {
+     "id": "estimator",
+     "label": "Cost Estimator",
+     "emoji": "🧮",
+     "soc": "13-1051",
+     "mean": 93240,
+     "range": [
+      66490,
+      112650
+     ]
+    },
+    {
+     "id": "electrician",
+     "label": "Electrician",
+     "emoji": "⚡",
+     "soc": "47-2111",
+     "mean": 70350,
+     "range": [
+      52390,
+      80620
+     ]
+    },
+    {
+     "id": "carpenter",
+     "label": "Carpenter",
+     "emoji": "🔨",
+     "soc": "47-2031",
+     "mean": 66550,
+     "range": [
+      49380,
+      77150
+     ]
+    }
+   ]
+  },
+  {
+   "id": "manufacturing",
+   "label": "Auto & Aerospace Manufacturing",
+   "emoji": "🚀",
+   "naics": "336",
+   "roles": [
+    {
+     "id": "aero-eng",
+     "label": "Aerospace Engineer",
+     "emoji": "🚀",
+     "soc": "17-2011",
+     "mean": 143470,
+     "range": [
+      107660,
+      170150
+     ]
+    },
+    {
+     "id": "mech-eng",
+     "label": "Mechanical Engineer",
+     "emoji": "⚙️",
+     "soc": "17-2141",
+     "mean": 114880,
+     "range": [
+      87140,
+      132370
+     ]
+    },
+    {
+     "id": "industrial-eng",
+     "label": "Industrial Engineer",
+     "emoji": "🏭",
+     "soc": "17-2112",
+     "mean": 108170,
+     "range": [
+      85080,
+      127250
+     ]
+    },
+    {
+     "id": "line-supervisor",
+     "label": "Line Supervisor",
+     "emoji": "📋",
+     "soc": "51-1011",
+     "mean": 81370,
+     "range": [
+      62370,
+      96760
+     ]
+    },
+    {
+     "id": "assembler",
+     "label": "Assembler",
+     "emoji": "🔩",
+     "soc": "51-2090",
+     "mean": 54740,
+     "range": [
+      42360,
+      67010
+     ]
+    }
+   ]
+  },
+  {
+   "id": "retail",
+   "label": "Big-Box Retail",
+   "emoji": "🛒",
+   "naics": "455",
+   "roles": [
+    {
+     "id": "district-mgr",
+     "label": "District Manager",
+     "emoji": "🧑‍💼",
+     "soc": "11-1021",
+     "mean": 87190,
+     "range": [
+      54600,
+      109500
+     ]
+    },
+    {
+     "id": "store-mgr",
+     "label": "Store Supervisor",
+     "emoji": "🏪",
+     "soc": "41-1011",
+     "mean": 49750,
+     "range": [
+      34960,
+      64170
+     ]
+    },
+    {
+     "id": "sales-assoc",
+     "label": "Sales Associate",
+     "emoji": "🛍️",
+     "soc": "41-2031",
+     "mean": 34300,
+     "range": [
+      29750,
+      37140
+     ]
+    },
+    {
+     "id": "cashier",
+     "label": "Cashier",
+     "emoji": "🧾",
+     "soc": "41-2011",
+     "mean": 32830,
+     "range": [
+      28640,
+      35430
+     ]
+    },
+    {
+     "id": "stocker",
+     "label": "Stocker",
+     "emoji": "📦",
+     "soc": "53-7065",
+     "mean": 37440,
+     "range": [
+      33020,
+      39210
+     ]
+    }
+   ]
+  },
+  {
+   "id": "restaurants",
+   "label": "Restaurants & Bars",
+   "emoji": "🍔",
+   "naics": "722",
+   "roles": [
+    {
+     "id": "gm",
+     "label": "Restaurant Manager",
+     "emoji": "🧑‍🍳",
+     "soc": "11-9051",
+     "mean": 71500,
+     "range": [
+      54890,
+      81330
+     ]
+    },
+    {
+     "id": "shift-lead",
+     "label": "Shift Lead",
+     "emoji": "⏱️",
+     "soc": "35-1012",
+     "mean": 45050,
+     "range": [
+      35540,
+      50550
+     ]
+    },
+    {
+     "id": "cook",
+     "label": "Line Cook",
+     "emoji": "🍳",
+     "soc": "35-2014",
+     "mean": 38210,
+     "range": [
+      33100,
+      44150
+     ]
+    },
+    {
+     "id": "server",
+     "label": "Server",
+     "emoji": "🍽️",
+     "soc": "35-3031",
+     "mean": 39850,
+     "range": [
+      27400,
+      47320
+     ]
+    },
+    {
+     "id": "bartender",
+     "label": "Bartender",
+     "emoji": "🍸",
+     "soc": "35-3011",
+     "mean": 41530,
+     "range": [
+      27770,
+      49360
+     ]
+    }
+   ]
+  },
+  {
+   "id": "logistics",
+   "label": "Warehousing & Logistics",
+   "emoji": "📦",
+   "naics": "493",
+   "roles": [
+    {
+     "id": "logistics-mgr",
+     "label": "Logistics Manager",
+     "emoji": "🗺️",
+     "soc": "11-3071",
+     "mean": 111890,
+     "range": [
+      83760,
+      128510
+     ]
+    },
+    {
+     "id": "shipping-clerk",
+     "label": "Shipping Clerk",
+     "emoji": "🏷️",
+     "soc": "43-5071",
+     "mean": 47820,
+     "range": [
+      40400,
+      52480
+     ]
+    },
+    {
+     "id": "forklift",
+     "label": "Forklift Operator",
+     "emoji": "🚜",
+     "soc": "53-7051",
+     "mean": 50390,
+     "range": [
+      44620,
+      58350
+     ]
+    },
+    {
+     "id": "picker",
+     "label": "Order Picker",
+     "emoji": "📦",
+     "soc": "53-7065",
+     "mean": 45950,
+     "range": [
+      39900,
+      48230
+     ]
+    },
+    {
+     "id": "laborer",
+     "label": "Warehouse Associate",
+     "emoji": "💪",
+     "soc": "53-7062",
+     "mean": 45380,
+     "range": [
+      38670,
+      49200
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hotels",
+   "label": "Hotels & Lodging",
+   "emoji": "🏨",
+   "naics": "721",
+   "roles": [
+    {
+     "id": "lodging-mgr",
+     "label": "Hotel Manager",
+     "emoji": "🏨",
+     "soc": "11-9081",
+     "mean": 77120,
+     "range": [
+      49040,
+      93000
+     ]
+    },
+    {
+     "id": "front-desk",
+     "label": "Front Desk Clerk",
+     "emoji": "🛎️",
+     "soc": "43-4081",
+     "mean": 35390,
+     "range": [
+      29710,
+      37900
+     ]
+    },
+    {
+     "id": "maintenance",
+     "label": "Maintenance Tech",
+     "emoji": "🔧",
+     "soc": "49-9071",
+     "mean": 45140,
+     "range": [
+      36040,
+      48540
+     ]
+    },
+    {
+     "id": "cook",
+     "label": "Cook",
+     "emoji": "🍳",
+     "soc": "35-2014",
+     "mean": 44750,
+     "range": [
+      37570,
+      48950
+     ]
+    },
+    {
+     "id": "housekeeping",
+     "label": "Housekeeper",
+     "emoji": "🧹",
+     "soc": "37-2012",
+     "mean": 36640,
+     "range": [
+      29420,
+      39050
+     ]
+    }
+   ]
+  },
+  {
+   "id": "energy",
+   "label": "Oil & Gas",
+   "emoji": "🛢️",
+   "naics": "211",
+   "roles": [
+    {
+     "id": "petro-eng",
+     "label": "Petroleum Engineer",
+     "emoji": "🛢️",
+     "soc": "17-2171",
+     "mean": 193990,
+     "range": [
+      139360,
+      227430
+     ]
+    },
+    {
+     "id": "geoscientist",
+     "label": "Geoscientist",
+     "emoji": "🪨",
+     "soc": "19-2042",
+     "mean": 198230,
+     "range": [
+      141280,
+      251520
+     ]
+    },
+    {
+     "id": "ops-mgr",
+     "label": "Operations Manager",
+     "emoji": "📋",
+     "soc": "11-1021",
+     "mean": 227290,
+     "range": [
+      128140,
+      321970
+     ]
+    },
+    {
+     "id": "accountant",
+     "label": "Accountant",
+     "emoji": "🧮",
+     "soc": "13-2011",
+     "mean": 119860,
+     "range": [
+      96120,
+      134330
+     ]
+    },
+    {
+     "id": "operator",
+     "label": "Field Service Operator",
+     "emoji": "⛽",
+     "soc": "47-5013",
+     "mean": 74550,
+     "range": [
+      49940,
+      95400
+     ]
+    }
+   ]
+  },
+  {
+   "id": "utilities",
+   "label": "Utilities",
+   "emoji": "⚡",
+   "naics": "221",
+   "roles": [
+    {
+     "id": "ops-mgr",
+     "label": "Operations Manager",
+     "emoji": "📋",
+     "soc": "11-1021",
+     "mean": 170090,
+     "range": [
+      122100,
+      202780
+     ]
+    },
+    {
+     "id": "ee",
+     "label": "Electrical Engineer",
+     "emoji": "🔌",
+     "soc": "17-2071",
+     "mean": 122280,
+     "range": [
+      99590,
+      138370
+     ]
+    },
+    {
+     "id": "plant-op",
+     "label": "Power Plant Operator",
+     "emoji": "🏭",
+     "soc": "51-8013",
+     "mean": 104520,
+     "range": [
+      89830,
+      122020
+     ]
+    },
+    {
+     "id": "lineworker",
+     "label": "Lineworker",
+     "emoji": "🪜",
+     "soc": "49-9051",
+     "mean": 102040,
+     "range": [
+      82360,
+      118860
+     ]
+    },
+    {
+     "id": "water-op",
+     "label": "Water Treatment Operator",
+     "emoji": "💧",
+     "soc": "51-8031",
+     "mean": 61580,
+     "range": [
+      47090,
+      75150
+     ]
+    }
+   ]
+  },
+  {
+   "id": "nonprofit",
+   "label": "Nonprofits & Associations",
+   "emoji": "💚",
+   "naics": "813",
+   "roles": [
+    {
+     "id": "exec-director",
+     "label": "Executive Director",
+     "emoji": "👑",
+     "soc": "11-1011",
+     "mean": 239980,
+     "range": [
+      118880,
+      307920
+     ]
+    },
+    {
+     "id": "fundraising-mgr",
+     "label": "Fundraising Manager",
+     "emoji": "🎗️",
+     "soc": "11-2033",
+     "mean": 140290,
+     "range": [
+      95960,
+      173050
+     ]
+    },
+    {
+     "id": "fundraiser",
+     "label": "Fundraiser",
+     "emoji": "💌",
+     "soc": "13-1131",
+     "mean": 79830,
+     "range": [
+      59230,
+      95060
+     ]
+    },
+    {
+     "id": "comms",
+     "label": "Communications Specialist",
+     "emoji": "🗞️",
+     "soc": "27-3031",
+     "mean": 81190,
+     "range": [
+      57000,
+      97060
+     ]
+    },
+    {
+     "id": "program-asst",
+     "label": "Program Assistant",
+     "emoji": "🤲",
+     "soc": "21-1093",
+     "mean": 48630,
+     "range": [
+      38700,
+      56770
+     ]
+    }
+   ]
+  }
+ ]
+};
+</script>
+<script data-src="js/data/jokeRoles.js">
+(function (MM) {
+  'use strict';
+
+  // Hand-written "special guests". Not BLS data: these are jokes with a straight face.
+  // `hourly` roles bill by the hour; `annual` roles are salaried like everyone else.
+
+  /** @type {Array<{id: string, label: string, emoji: string, hourly?: number, annual?: number, note: string}>} */
+  MM.jokeRoles = [
+    { id: 'outside-consultant', label: 'Outside Consultant', emoji: '🧳', hourly: 400, note: '$400/hr, billed in 15-minute increments' },
+    { id: 'outside-counsel', label: 'Outside Counsel', emoji: '👨‍⚖️', hourly: 750, note: '$750/hr. The meter is running on their end too.' },
+    { id: 'late-vp', label: 'The VP Who Joined Late', emoji: '🐢', annual: 250000, note: '"Sorry, back-to-backs. Can someone recap?"' },
+    { id: 'intern', label: 'Intern (paid in pizza)', emoji: '🍕', annual: 35000, note: 'Taking notes nobody will read' },
+    { id: 'ai-notetaker', label: 'AI Notetaker Bot', emoji: '🤖', hourly: 0.14, note: '$30/month. Remembers everything. Judges silently.' },
+    { id: 'dog', label: "Someone's Dog on Camera", emoji: '🐶', annual: 0, note: 'Free. Priceless. The best part of the meeting.' },
+  ];
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/format.js">
+(function (MM) {
+  'use strict';
+
+  const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const usd0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 0 });
+
+  /** @param {number} n */
+  const money = (n) => usd.format(n);
+  /** Whole dollars above $10k so the ticker stays readable. @param {number} n */
+  const ticker = (n) => (n >= 10000 ? usd0.format(n) : usd.format(n));
+  /** "$148K" @param {number} n */
+  const moneyShort = (n) => '$' + compact.format(n);
+
+  const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
+  /** "01:07:09" @param {number} ms */
+  function clock(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  }
+  /** "1h 7m" / "12m" / "45s" @param {number} ms */
+  function duration(ms) {
+    const m = Math.round(ms / 60000);
+    if (m < 1) return `${Math.round(ms / 1000)}s`;
+    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+  }
+  /** @param {string | number} when */
+  const dateTime = (when) =>
+    new Date(when).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+  MM.format = { money, ticker, moneyShort, clock, duration, dateTime };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/catalog.js">
+(function (MM) {
+  'use strict';
+
+  // Turns the generated salary data + joke roles into one lookup of attendee "keys".
+  // A key is `${groupId}.${roleId}`, e.g. "tech.swe", "all.generic", "fun.dog".
+
+  const HOURS_PER_YEAR = 2080;     // same assumption as the original app
+  const LOADED_MULTIPLIER = 1.4;   // wages are ~70% of total comp (BLS ECEC)
+  const GENERIC_KEY = 'all.generic';
+
+  /**
+   * @typedef {{key: string, label: string, emoji: string, group: string, groupLabel: string,
+   *   annual: number, hourly: number, billed: boolean, est?: boolean, capped?: boolean,
+   *   range?: [number, number], note?: string, joke?: boolean}} Role
+   * @typedef {{id: string, label: string, emoji: string, keys: string[]}} Group
+   * @typedef {{industries: Group[], general: Group, fun: Group, roles: Map<string, Role>,
+   *   get: (key: string) => Role | undefined, has: (key: string) => boolean,
+   *   industry: (id: string) => Group | undefined}} Catalog
+   */
+
+  /**
+   * @param {any} data  default export of js/data/salaries.js
+   * @param {any[]} jokes default export of js/data/jokeRoles.js
+   * @returns {Catalog}
+   */
+  function buildCatalog(data, jokes) {
+    /** @type {Map<string, Role>} */
+    const roles = new Map();
+    const hours = data.hoursPerYear || HOURS_PER_YEAR;
+
+    /** @returns {Group} */
+    const addGroup = (/** @type {any} */ g) => {
+      const keys = g.roles.map((/** @type {any} */ r) => {
+        const key = `${g.id}.${r.id}`;
+        roles.set(key, {
+          key, label: r.label, emoji: r.emoji, group: g.id, groupLabel: g.label,
+          annual: r.mean, hourly: r.mean / hours, billed: false,
+          est: r.est, capped: r.capped, range: r.range,
+        });
+        return key;
+      });
+      return { id: g.id, label: g.label, emoji: g.emoji, keys };
+    };
+
+    const general = addGroup(data.general);
+    const industries = data.industries.map(addGroup);
+    const fun = {
+      id: 'fun', label: 'Special Guests', emoji: '🎭',
+      keys: jokes.map((j) => {
+        const key = `fun.${j.id}`;
+        const hourly = j.hourly ?? (j.annual ?? 0) / hours;
+        roles.set(key, {
+          key, label: j.label, emoji: j.emoji, group: 'fun', groupLabel: 'Special Guests',
+          annual: j.annual ?? hourly * hours, hourly, billed: j.hourly != null,
+          note: j.note, joke: true,
+        });
+        return key;
+      }),
+    };
+
+    return {
+      industries, general, fun, roles,
+      get: (key) => roles.get(key),
+      has: (key) => roles.has(key),
+      industry: (id) => (id === 'all' ? general : industries.find((/** @type {Group} */ g) => g.id === id)),
+    };
+  }
+
+  /**
+   * Cost per millisecond for one person in this role.
+   * Billed roles (consultants) already include overhead, so "loaded" doesn't apply.
+   * @param {Role} role @param {boolean} loaded
+   */
+  function perPersonRatePerMs(role, loaded) {
+    const hourly = role.billed || !loaded ? role.hourly : role.hourly * LOADED_MULTIPLIER;
+    return hourly / 3_600_000;
+  }
+
+  MM.catalog = { HOURS_PER_YEAR, LOADED_MULTIPLIER, GENERIC_KEY, buildCatalog, perPersonRatePerMs };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/cost.js">
+(function (MM) {
+  'use strict';
+
+  // Pure cost math. No DOM, no clock: time is always passed in.
+
+  /** @typedef {Record<string, number>} Attendees  key -> headcount */
+
+  /** @param {Attendees} attendees */
+  const headcount = (attendees) =>
+    Object.values(attendees).reduce((n, c) => n + (c > 0 ? c : 0), 0);
+
+  /**
+   * Per-person rates (cost/ms) for each attendee key.
+   * @param {Attendees} attendees
+   * @param {(key: string) => number} rateOf
+   * @returns {Record<string, number>}
+   */
+  function ratesFor(attendees, rateOf) {
+    /** @type {Record<string, number>} */
+    const rates = {};
+    for (const [key, count] of Object.entries(attendees)) if (count > 0) rates[key] = rateOf(key);
+    return rates;
+  }
+
+  /** Total cost/ms for a group. @param {Attendees} attendees @param {Record<string, number>} rates */
+  function totalRate(attendees, rates) {
+    let r = 0;
+    for (const [key, count] of Object.entries(attendees)) if (count > 0) r += count * (rates[key] ?? 0);
+    return r;
+  }
+
+  const RECURRENCE = /** @type {const} */ ({
+    once: { label: 'Just this once', perYear: 1 },
+    daily: { label: 'Daily (every workday)', perYear: 260 },
+    weekly: { label: 'Weekly', perYear: 52 },
+    biweekly: { label: 'Every two weeks', perYear: 26 },
+    monthly: { label: 'Monthly', perYear: 12 },
+  });
+
+  /**
+   * The original app's "historical" calculation, generalized.
+   * @param {number} ratePerMs @param {number} durationMs @param {number} perYear
+   */
+  function projection(ratePerMs, durationMs, perYear) {
+    const perEvent = ratePerMs * durationMs;
+    return {
+      perMinute: ratePerMs * 60_000,
+      perHour: ratePerMs * 3_600_000,
+      perEvent,
+      perYear: perEvent * perYear,
+      hoursPerYear: (durationMs * perYear) / 3_600_000,
+    };
+  }
+
+  MM.cost = { headcount, ratesFor, totalRate, RECURRENCE, projection };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/session.js">
+(function (MM) {
+  'use strict';
+
+  // Meeting session state machine. Every function is pure: (session, now) -> new session.
+  // Cost is the sum of "segments". Each segment freezes the headcount and per-person
+  // rates in effect while it ran, so changing attendees, pausing, or toggling the
+  // loaded-cost setting never rewrites money already spent.
+
+  const { headcount, totalRate } = MM.cost;
+
+  /**
+   * @typedef {import('./cost.js').Attendees} Attendees
+   * @typedef {{start: number, end: number | null, attendees: Attendees, rates: Record<string, number>}} Segment
+   * @typedef {'idle' | 'running' | 'paused' | 'ended'} Status
+   * @typedef {{id: string, title: string, industry: string, loaded: boolean, status: Status,
+   *   attendees: Attendees, startedAt: number | null, endedAt: number | null,
+   *   segments: Segment[], peak: number}} Session
+   */
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  /** @param {Partial<Session>} [init] @returns {Session} */
+  function createSession(init = {}) {
+    return {
+      id: newId(), title: '', industry: 'all', loaded: false, attendees: {},
+      ...init,
+      status: 'idle', startedAt: null, endedAt: null, segments: [],
+      peak: headcount(init.attendees ?? {}),
+    };
+  }
+
+  /** @param {Session} s @param {number} now @param {(key: string, loaded: boolean) => number} rateOf @returns {Segment} */
+  const openSegment = (s, now, rateOf) => {
+    /** @type {Record<string, number>} */
+    const rates = {};
+    for (const [k, c] of Object.entries(s.attendees)) if (c > 0) rates[k] = rateOf(k, s.loaded);
+    return { start: now, end: null, attendees: { ...s.attendees }, rates };
+  };
+
+  /** @param {Segment[]} segs @param {number} now */
+  const closeAll = (segs, now) => segs.map((g) => (g.end == null ? { ...g, end: Math.max(g.start, now) } : g));
+
+  /**
+   * Start the meter. `offsetMs` backdates the start ("we started 10 minutes ago").
+   * @param {Session} s @param {number} now @param {(key: string, loaded: boolean) => number} rateOf @param {number} [offsetMs]
+   * @returns {Session}
+   */
+  function start(s, now, rateOf, offsetMs = 0) {
+    if (s.status !== 'idle') return s;
+    const t = now - Math.max(0, offsetMs);
+    return { ...s, status: 'running', startedAt: t, segments: [openSegment(s, t, rateOf)], peak: headcount(s.attendees) };
+  }
+
+  /** @param {Session} s @param {number} now @returns {Session} */
+  function pause(s, now) {
+    if (s.status !== 'running') return s;
+    return { ...s, status: 'paused', segments: closeAll(s.segments, now) };
+  }
+
+  /** @param {Session} s @param {number} now @param {(key: string, loaded: boolean) => number} rateOf @returns {Session} */
+  function resume(s, now, rateOf) {
+    if (s.status !== 'paused') return s;
+    return { ...s, status: 'running', segments: [...s.segments, openSegment(s, now, rateOf)] };
+  }
+
+  /** @param {Session} s @param {number} now @returns {Session} */
+  function end(s, now) {
+    if (s.status !== 'running' && s.status !== 'paused') return s;
+    return { ...s, status: 'ended', endedAt: now, segments: closeAll(s.segments, now) };
+  }
+
+  /**
+   * Change who's in the room (or the loaded-cost setting) at time `now`.
+   * @param {Session} s @param {Partial<Pick<Session, 'attendees' | 'loaded' | 'industry' | 'title'>>} patch
+   * @param {number} now @param {(key: string, loaded: boolean) => number} rateOf @returns {Session}
+   */
+  function update(s, patch, now, rateOf) {
+    const next = { ...s, ...patch };
+    if (patch.attendees) {
+      next.attendees = Object.fromEntries(Object.entries(patch.attendees).filter(([, c]) => c > 0));
+      next.peak = Math.max(s.peak, headcount(next.attendees));
+    }
+    const rateChanged = patch.attendees !== undefined || (patch.loaded !== undefined && patch.loaded !== s.loaded);
+    if (s.status === 'running' && rateChanged) {
+      next.segments = [...closeAll(s.segments, now), openSegment(next, now, rateOf)];
+    }
+    return next;
+  }
+
+  /** @param {Segment} g @param {number} now */
+  const segMs = (g, now) => Math.max(0, (g.end ?? now) - g.start);
+
+  /** Billable time (pauses excluded). @param {Session} s @param {number} now */
+  const elapsed = (s, now) => s.segments.reduce((t, g) => t + segMs(g, now), 0);
+
+  /** @param {Session} s @param {number} now */
+  const cost = (s, now) =>
+    s.segments.reduce((c, g) => c + segMs(g, now) * totalRate(g.attendees, g.rates), 0);
+
+  /** Current cost/ms (0 unless running). @param {Session} s */
+  function currentRate(s) {
+    const open = s.segments.find((g) => g.end == null);
+    return open ? totalRate(open.attendees, open.rates) : 0;
+  }
+
+  /**
+   * Cost per attendee key, for the receipt.
+   * @param {Session} s @param {number} now @returns {Array<{key: string, cost: number, count: number}>}
+   */
+  function breakdown(s, now) {
+    /** @type {Map<string, {key: string, cost: number, count: number}>} */
+    const by = new Map();
+    for (const g of s.segments) {
+      const ms = segMs(g, now);
+      for (const [key, count] of Object.entries(g.attendees)) {
+        const row = by.get(key) ?? { key, cost: 0, count: 0 };
+        row.cost += ms * count * (g.rates[key] ?? 0);
+        row.count = Math.max(row.count, count);
+        by.set(key, row);
+      }
+    }
+    return [...by.values()].sort((a, b) => b.cost - a.cost);
+  }
+
+  MM.session = { createSession, start, pause, resume, end, update, elapsed, cost, currentRate, breakdown };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/storage.js">
+(function (MM) {
+  'use strict';
+
+  // Versioned localStorage wrapper. Every access is wrapped in try/catch: private
+  // windows, blocked storage, or corrupted JSON must never break the meter.
+
+  const SCHEMA = 1;
+  const PREFIX = 'meeting-meter:';
+  const MAX_HISTORY = 200;
+
+  /**
+   * @typedef {{id: string, title: string, startedAt: string, durationMs: number, cost: number,
+   *   peak: number, industry: string, loaded: boolean, postmortem?: boolean,
+   *   lines?: Array<{label: string, emoji: string, count: number, cost: number}>}} HistoryEntry
+   * @typedef {{getItem(k: string): string | null, setItem(k: string, v: string): void, removeItem(k: string): void}} Backend
+   */
+
+  /** @param {any} e @returns {e is HistoryEntry} */
+  function isEntry(e) {
+    return !!e && typeof e.id === 'string' && typeof e.cost === 'number' && Number.isFinite(e.cost)
+      && typeof e.durationMs === 'number' && typeof e.startedAt === 'string' && !Number.isNaN(Date.parse(e.startedAt));
+  }
+
+  /** @param {Backend | null} [backend] */
+  function createStore(backend) {
+    /** @type {Backend | null} */
+    let be = null;
+    try {
+      be = backend === undefined ? globalThis.localStorage : backend;
+      if (be) { be.setItem(PREFIX + 'probe', '1'); be.removeItem(PREFIX + 'probe'); }
+    } catch { be = null; }
+
+    /** @param {string} key @param {any} fallback */
+    function read(key, fallback) {
+      if (!be) return fallback;
+      try {
+        const raw = be.getItem(PREFIX + key);
+        if (raw == null) return fallback;
+        const box = JSON.parse(raw);
+        if (!box || typeof box !== 'object' || !('v' in box)) return fallback;
+        return migrate(key, box.v, box.data) ?? fallback;
+      } catch { return fallback; }
+    }
+
+    /** @param {string} key @param {any} data */
+    function write(key, data) {
+      if (!be) return false;
+      try { be.setItem(PREFIX + key, JSON.stringify({ v: SCHEMA, data })); return true; } catch { return false; }
+    }
+
+    /** @param {string} key */
+    function remove(key) { try { be?.removeItem(PREFIX + key); } catch { /* ignore */ } }
+
+    /** @returns {HistoryEntry[]} */
+    const history = () => {
+      const h = read('history', []);
+      return Array.isArray(h) ? h.filter(isEntry) : [];
+    };
+    /** @param {HistoryEntry[]} list */
+    const saveHistory = (list) => write('history', list.slice(-MAX_HISTORY));
+
+    return {
+      available: !!be,
+      prefs: () => ({ ...read('prefs', {}) }),
+      /** @param {Record<string, any>} patch */
+      setPrefs: (patch) => write('prefs', { ...read('prefs', {}), ...patch }),
+      activeSession: () => read('active', null),
+      /** @param {any} s */
+      saveActive: (s) => (s ? write('active', s) : remove('active')),
+      history,
+      /** @param {HistoryEntry} e */
+      addEntry: (e) => saveHistory([...history().filter((x) => x.id !== e.id), e]),
+      /** @param {string} id @param {string} title */
+      rename: (id, title) => saveHistory(history().map((e) => (e.id === id ? { ...e, title } : e))),
+      /** @param {string} id */
+      removeEntry: (id) => saveHistory(history().filter((e) => e.id !== id)),
+      clearHistory: () => remove('history'),
+      exportJSON: () => JSON.stringify({ app: 'meeting-meter', v: SCHEMA, history: history() }, null, 2),
+      /** Merge an export file into history. Returns how many entries were added. @param {string} text */
+      importJSON(text) {
+        const parsed = JSON.parse(text);
+        const incoming = (Array.isArray(parsed) ? parsed : parsed?.history ?? []).filter(isEntry);
+        const current = history();
+        const ids = new Set(current.map((e) => e.id));
+        const added = incoming.filter((/** @type {HistoryEntry} */ e) => !ids.has(e.id));
+        saveHistory([...current, ...added].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt)));
+        return added.length;
+      },
+    };
+  }
+
+  /**
+   * Upgrade stored data from older schema versions. Unknown/newer versions are dropped.
+   * @param {string} _key @param {number} version @param {any} data
+   */
+  function migrate(_key, version, data) {
+    if (version === SCHEMA) return data;
+    return null; // v1 is the first schema; future versions add cases here
+  }
+
+  MM.storage = { SCHEMA, isEntry, createStore };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/share.js">
+(function (MM) {
+  'use strict';
+
+  // Meeting config <-> URL hash, so a link in a calendar invite opens pre-filled.
+  // Format: #i=tech&r=tech.swe*3,all.pm*1&t=Sprint%20Planning&l=1
+
+  /** @typedef {{industry?: string, attendees: Record<string, number>, title?: string, loaded?: boolean}} SharedConfig */
+
+  const KEY_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
+
+  /** @param {SharedConfig} cfg */
+  function encodeConfig(cfg) {
+    const p = new URLSearchParams();
+    if (cfg.industry) p.set('i', cfg.industry);
+    const r = Object.entries(cfg.attendees).filter(([, c]) => c > 0).map(([k, c]) => `${k}*${c}`).join(',');
+    if (r) p.set('r', r);
+    if (cfg.title) p.set('t', cfg.title.slice(0, 80));
+    if (cfg.loaded) p.set('l', '1');
+    return p.toString();
+  }
+
+  /**
+   * @param {string} hash  location.hash (with or without '#')
+   * @param {(key: string) => boolean} [isKnown] drop roles the catalog doesn't know
+   * @returns {SharedConfig | null}
+   */
+  function decodeConfig(hash, isKnown = () => true) {
+    const raw = hash.replace(/^#/, '');
+    if (!raw) return null;
+    const p = new URLSearchParams(raw);
+    if (!p.has('r') && !p.has('i')) return null;
+    /** @type {Record<string, number>} */
+    const attendees = {};
+    for (const part of (p.get('r') ?? '').split(',')) {
+      const [key, n] = part.split('*');
+      const count = Math.min(999, Math.max(0, Math.floor(Number(n ?? 1))));
+      if (KEY_RE.test(key ?? '') && count > 0 && isKnown(key)) attendees[key] = (attendees[key] ?? 0) + count;
+    }
+    const industry = p.get('i') ?? undefined;
+    return {
+      industry: industry && /^[a-z0-9-]+$/.test(industry) ? industry : undefined,
+      attendees,
+      title: (p.get('t') ?? '').slice(0, 80) || undefined,
+      loaded: p.get('l') === '1',
+    };
+  }
+
+  MM.share = { encodeConfig, decodeConfig };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/humor/tiers.js">
+(function (MM) {
+  'use strict';
+
+  // The emotional journey of a meeting, in dollars. `level` drives the effects:
+  // money-rain density, ticker heat (green -> red), screen shake (>= 9), siren (>= 12).
+
+  const TIERS = [
+    { min: 0, name: 'Warming up', quip: 'Everyone is still saying "can you hear me?"' },
+    { min: 1, name: 'Small talk', quip: 'So... how was everyone’s weekend?' },
+    { min: 3, name: 'Slack-worthy', quip: 'This could have been a Slack message.' },
+    { min: 10, name: 'Email-worthy', quip: 'This could have been an email.' },
+    { min: 25, name: 'Agenda? What agenda?', quip: 'Someone just said "quick question."' },
+    { min: 50, name: 'Pizza party', quip: 'That was a whole team pizza party. Gone.' },
+    { min: 100, name: 'Take it offline', quip: '"Let’s take this offline." (They will not.)' },
+    { min: 150, name: 'Sweating', quip: 'Somebody is visibly sweating.' },
+    { min: 250, name: 'This is fine', quip: '🔥 This is fine. (It is not fine.) 🔥' },
+    { min: 500, name: 'Finance noticed', quip: 'Finance has entered the chat.' },
+    { min: 1000, name: 'Four figures', quip: 'Four figures. Hope it was a good meeting.' },
+    { min: 2500, name: 'Budget line item', quip: 'This meeting now has its own budget line.' },
+    { min: 5000, name: 'Call the CFO', quip: 'Someone call the CFO. Actually, don’t. They’ll join.' },
+    { min: 10000, name: 'Used car', quip: 'This meeting could have been a used car.' },
+    { min: 25000, name: 'Conference', quip: 'Legally, this is now a conference.' },
+    { min: 50000, name: 'The 50K Club', quip: '🏆 Welcome to the 50K Club. There are no snacks.' },
+    { min: 100000, name: 'Six figures', quip: 'You could have hired someone. To not have this meeting.' },
+  ].map((t, level) => ({ ...t, level }));
+
+  const MAX_LEVEL = TIERS.length - 1;
+
+  /** @param {number} cost */
+  function tierFor(cost) {
+    let t = TIERS[0];
+    for (const tier of TIERS) if (cost >= tier.min) t = tier;
+    return t;
+  }
+
+  /** The next threshold to dread. @param {number} cost */
+  function nextTier(cost) {
+    return TIERS.find((t) => t.min > cost) ?? null;
+  }
+
+  /** 0..1 heat for the color ramp. @param {number} level */
+  const heat = (level) => Math.min(1, level / 13);
+
+  MM.tiers = { TIERS, MAX_LEVEL, tierFor, nextTier, heat };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/humor/equivalents.js">
+(function (MM) {
+  'use strict';
+
+  // "This meeting has cost the same as ___." Prices are rough U.S. figures.
+
+  const ITEMS = [
+    { one: 'stick of gum', many: 'sticks of gum', price: 0.25 },
+    { one: 'fancy latte', many: 'fancy lattes', price: 6 },
+    { one: 'burrito', many: 'burritos', price: 12 },
+    { one: 'movie ticket', many: 'movie tickets', price: 15 },
+    { one: 'large pizza', many: 'large pizzas', price: 20 },
+    { one: 'month of streaming', many: 'months of streaming', price: 18 },
+    { one: 'video game', many: 'video games', price: 70 },
+    { one: 'pair of AirPods', many: 'pairs of AirPods', price: 179 },
+    { one: 'used ThinkPad', many: 'used ThinkPads', price: 350 },
+    { one: 'game console', many: 'game consoles', price: 499 },
+    { one: 'month of rent', many: 'months of rent', price: 1700 },
+    { one: 'year of in-state tuition', many: 'years of in-state tuition', price: 11600 },
+    { one: 'Honda Civic', many: 'Honda Civics', price: 25000 },
+    { one: 'CEO’s annual bonus', many: 'CEO annual bonuses', price: 1500000 },
+  ];
+
+  const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+
+  /**
+   * A few fun comparisons for a dollar amount, best first.
+   * @param {number} cost
+   * @returns {string[]}
+   */
+  function equivalents(cost) {
+    if (cost < 0.01) return ['≈ nothing yet. Enjoy it while it lasts.'];
+    /** @type {Array<{text: string, score: number}>} */
+    const out = [];
+    for (const item of ITEMS) {
+      const n = cost / item.price;
+      if (n >= 1 && n < 500) {
+        const whole = n < 10 ? Math.round(n * 10) / 10 : Math.round(n);
+        out.push({ text: `≈ ${nf.format(whole)} ${whole === 1 ? item.one : item.many}`, score: Math.abs(Math.log10(n) - 1) });
+      } else if (n >= 0.01 && n < 1 && item.price >= 1000) {
+        out.push({ text: `≈ ${nf.format(n * 100)}% of a ${item.one}`, score: 1.5 - n });
+      }
+    }
+    if (!out.length) return [`≈ ${nf.format((cost / ITEMS[1].price) * 100)}% of a fancy latte`];
+    return out.sort((a, b) => a.score - b.score).slice(0, 4).map((o) => o.text);
+  }
+
+  MM.equivalents = { equivalents };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/humor/titles.js">
+(function (MM) {
+  'use strict';
+
+  // For meetings nobody bothered to name. (Most of them.)
+
+  const TITLES = [
+    'Sync About the Sync', 'Quick Chat (90 min)', 'Alignment on Alignment', 'Pre-Meeting Meeting',
+    'Touch Base Re: Circling Back', 'Brainstorm (No Bad Ideas, Several Bad Ideas)', 'Weekly Weekly',
+    'Strategic Vision Thing', 'Could Have Been an Email', 'Post-Mortem of the Pre-Mortem',
+    'Kickoff for the Kickoff', 'Standup (Everyone Sitting)', 'Optional Mandatory Meeting',
+    'Synergy Sesh', 'Holding Pattern', 'Deep Dive (Shallow End)', 'Retro on the Retro',
+    'Status Update on the Status Update', 'Calendar Tetris Champion', 'Open Discussion (Closed Minds)',
+  ];
+
+  const randomTitle = () => TITLES[Math.floor(Math.random() * TITLES.length)];
+
+  MM.titles = { randomTitle };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/humor/badges.js">
+(function (MM) {
+  'use strict';
+
+  /** @typedef {import('../storage.js').HistoryEntry} HistoryEntry */
+
+  /** @type {Array<{id: string, emoji: string, name: string, desc: string, test: (h: HistoryEntry[]) => boolean}>} */
+  const BADGES = [
+    { id: 'first', emoji: '🐣', name: 'First Blood', desc: 'Measured your first meeting', test: (h) => h.length >= 1 },
+    { id: 'speedrun', emoji: '⚡', name: 'Speedrun', desc: 'A meeting under 5 minutes. Legend.', test: (h) => h.some((e) => !e.postmortem && e.durationMs > 0 && e.durationMs < 5 * 60e3) },
+    { id: 'k1', emoji: '💸', name: 'Four Figures', desc: 'One meeting over $1,000', test: (h) => h.some((e) => e.cost >= 1000) },
+    { id: 'k10', emoji: '🚗', name: 'Used Car Lot', desc: 'One meeting over $10,000', test: (h) => h.some((e) => e.cost >= 10000) },
+    { id: 'k50', emoji: '🏆', name: 'The 50K Club', desc: 'One meeting over $50,000', test: (h) => h.some((e) => e.cost >= 50000) },
+    { id: 'marathon', emoji: '🏃', name: 'Marathon', desc: 'A meeting longer than 2 hours', test: (h) => h.some((e) => e.durationMs >= 2 * 3600e3) },
+    { id: 'crowd', emoji: '🏟️', name: 'Standing Room Only', desc: '20+ people in one meeting', test: (h) => h.some((e) => e.peak >= 20) },
+    { id: 'regular', emoji: '📅', name: 'Regular', desc: 'Logged 10 meetings', test: (h) => h.length >= 10 },
+    { id: 'lifetime', emoji: '🔥', name: 'Arsonist', desc: '$100,000 lifetime set on fire', test: (h) => h.reduce((s, e) => s + e.cost, 0) >= 100000 },
+  ];
+
+  /** @param {HistoryEntry[]} history */
+  const earned = (history) => BADGES.filter((b) => b.test(history));
+
+  MM.badges = { BADGES, earned };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/ui/picker.js">
+(function (MM) {
+  'use strict';
+
+  // Role chips: tap to add one person, use the small minus to remove one.
+  const { moneyShort } = MM.format;
+  const { GENERIC_KEY } = MM.catalog;
+
+  /** @typedef {import('../catalog.js').Catalog} Catalog @typedef {import('../catalog.js').Role} Role */
+
+  /** @param {string} tag @param {Record<string, any>} [props] @param {Array<Node | string>} [kids] */
+  function h(tag, props = {}, kids = []) {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'class') el.className = v;
+      else if (k === 'value') /** @type {HTMLInputElement} */ (el).value = v;
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else if (v === true) el.setAttribute(k, '');
+      else if (v !== false && v != null) el.setAttribute(k, String(v));
+    }
+    el.append(...kids);
+    return el;
+  }
+
+  /** @param {Role} r */
+  function payHint(r) {
+    if (r.joke) {
+      if (r.billed) return `$${r.hourly < 1 ? r.hourly.toFixed(2) : Math.round(r.hourly)}/hr`;
+      return r.annual ? moneyShort(r.annual) : '$0';
+    }
+    return (r.est ? '≈' : '') + moneyShort(r.annual);
+  }
+
+  /** @param {Role} r */
+  function tooltip(r) {
+    if (r.note) return r.note;
+    const range = r.range ? ` · middle 50% earn ${moneyShort(r.range[0])}–${moneyShort(r.range[1])}` : '';
+    const flags = r.est ? ' · BLS has no figure, so this is a low-end estimate'
+      : r.capped ? ' · BLS caps published wages; the real number is likely higher' : '';
+    return `${r.label} (${r.groupLabel}): ${moneyShort(r.annual)}/yr average${range}${flags}`;
+  }
+
+  /**
+   * @param {HTMLElement} root
+   * @param {{catalog: Catalog, industry: string, attendees: Record<string, number>,
+   *   onChange: (key: string, delta: number) => void}} opts
+   */
+  function renderChips(root, { catalog, industry, attendees, onChange }) {
+    const group = (/** @type {string} */ title, /** @type {string[]} */ keys) => {
+      const chips = keys.filter((k) => k !== GENERIC_KEY).map((key) => {
+        const r = /** @type {Role} */ (catalog.get(key));
+        const n = attendees[key] ?? 0;
+        const chip = h('button', {
+          type: 'button', class: 'chip' + (n ? ' on' : ''), title: tooltip(r),
+          'aria-label': `Add ${r.label}${n ? `, ${n} in the room` : ''}`,
+          onclick: () => onChange(key, 1),
+        }, [`${r.emoji} ${r.label}`, h('span', { class: 'pay' }, [payHint(r)]), h('span', { class: 'count' }, [String(n)])]);
+        if (!n) return chip;
+        return h('span', { class: 'chip-wrap' }, [chip,
+          h('button', { type: 'button', class: 'chip-minus', 'aria-label': `Remove one ${r.label}`, onclick: () => onChange(key, -1) }, ['−'])]);
+      });
+      return h('div', { class: 'chip-group' }, [h('h3', {}, [title]), h('div', { class: 'chips' }, chips)]);
+    };
+
+    const ind = industry !== 'all' ? catalog.industry(industry) : undefined;
+    // Roles from other industries still in the room (e.g. after switching industry).
+    const shown = new Set([...(ind?.keys ?? []), ...catalog.general.keys, ...catalog.fun.keys]);
+    const elsewhere = Object.keys(attendees).filter((k) => !shown.has(k) && catalog.has(k) && attendees[k] > 0);
+
+    /** @type {HTMLElement[]} */
+    const groups = [];
+    if (ind) groups.push(group(`${ind.emoji} ${ind.label}`, ind.keys));
+    if (elsewhere.length) groups.push(group('Also in the room', elsewhere));
+    groups.push(group(ind ? '🇺🇸 Everyone else (U.S. average)' : '🇺🇸 Common roles (U.S. average)', catalog.general.keys));
+    groups.push(group('🎭 Special guests', catalog.fun.keys));
+    root.replaceChildren(...groups);
+  }
+
+  MM.picker = { h, renderChips };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/ui/effects.js">
+(function (MM) {
+  'use strict';
+
+  // Money rain on a full-page canvas, plus shake and siren classes.
+  // Everything is skipped when the visitor prefers reduced motion.
+
+  const BILLS = ['💵', '💸', '💰', '🪙'];
+  // Bills spawned per second at each tier level.
+  const DENSITY = [0, 0, 0, 0.5, 1, 2, 3, 4, 6, 8, 10, 13, 16, 20, 26, 32, 40];
+
+  /** @param {HTMLCanvasElement} canvas */
+  function createEffects(canvas) {
+    const ctx = canvas.getContext('2d');
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    /** @type {Array<{x: number, y: number, vy: number, vx: number, rot: number, vr: number, size: number, glyph: string}>} */
+    let drops = [];
+    let level = 0, burstUntil = 0, last = 0, carry = 0, raf = 0;
+
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr;
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    addEventListener('resize', resize); resize();
+
+    /** @param {number} t */
+    function frame(t) {
+      raf = 0;
+      if (!ctx) return;
+      const dt = Math.min(0.1, (t - (last || t)) / 1000); last = t;
+      const rate = t < burstUntil ? 60 : DENSITY[Math.min(level, DENSITY.length - 1)];
+      carry += rate * dt;
+      while (carry >= 1 && drops.length < 220) {
+        carry -= 1;
+        drops.push({ x: Math.random() * innerWidth, y: -40, vy: 80 + Math.random() * 160, vx: -20 + Math.random() * 40,
+          rot: Math.random() * 6, vr: -2 + Math.random() * 4, size: 18 + Math.random() * 22,
+          glyph: BILLS[Math.floor(Math.random() * BILLS.length)] });
+      }
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      drops = drops.filter((d) => d.y < innerHeight + 50);
+      for (const d of drops) {
+        d.y += d.vy * dt; d.x += d.vx * dt; d.rot += d.vr * dt;
+        ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
+        ctx.font = `${d.size}px serif`; ctx.fillText(d.glyph, -d.size / 2, d.size / 2);
+        ctx.restore();
+      }
+      if (drops.length || rate > 0) raf = requestAnimationFrame(frame); else last = 0;
+    }
+    const kick = () => { if (!raf && !motion.matches) raf = requestAnimationFrame(frame); };
+
+    return {
+      /** @param {number} l */
+      setLevel(l) { level = l; if (l > 0) kick(); },
+      stop() { level = 0; },
+      /** "Make it rain" for a few seconds. @param {number} ms */
+      burst(ms) { burstUntil = performance.now() + ms; kick(); },
+      /** @param {HTMLElement} el */
+      shake(el) {
+        if (motion.matches) return;
+        el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+      },
+    };
+  }
+
+  MM.effects = { createEffects };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/ui/audio.js">
+(function (MM) {
+  'use strict';
+
+  // A synthesized "cha-ching": no audio files, nothing to download.
+
+  function createAudio() {
+    /** @type {AudioContext | null} */
+    let ctx = null;
+    const tone = (/** @type {AudioContext} */ c, /** @type {number} */ freq, /** @type {number} */ at, /** @type {number} */ len) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.25, at + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+      o.connect(g).connect(c.destination); o.start(at); o.stop(at + len + 0.05);
+    };
+    return {
+      chaChing() {
+        try {
+          ctx ??= new AudioContext();
+          const t = ctx.currentTime + 0.02;
+          tone(ctx, 1318, t, 0.12); tone(ctx, 1760, t + 0.1, 0.35); tone(ctx, 2637, t + 0.1, 0.25);
+        } catch { /* audio unavailable: the silence is also funny */ }
+      },
+    };
+  }
+
+  MM.audio = { createAudio };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/ui/receipt.js">
+(function (MM) {
+  'use strict';
+
+  // Thermal-receipt summary of a meeting, as text and as a downloadable PNG.
+  const { money, clock, dateTime } = MM.format;
+
+  const W = 34; // receipt width in characters
+
+  /** @param {string} left @param {string} right */
+  const row = (left, right) => {
+    const room = W - right.length - 1;
+    const l = left.length > room ? left.slice(0, room - 1) + '…' : left;
+    return l + ' '.repeat(W - l.length - right.length) + right;
+  };
+  const center = (/** @type {string} */ s) => ' '.repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s;
+  const rule = '-'.repeat(W);
+
+  /** @param {import('../storage.js').HistoryEntry} e */
+  function receiptText(e) {
+    return [
+      center('*** MEETING METER ***'),
+      center(`"${e.title}"`.slice(0, W)),
+      center(dateTime(e.startedAt)),
+      rule,
+      ...(e.lines ?? []).map((l) => row(`${l.count}x ${l.label}`, money(l.cost))),
+      rule,
+      row('Duration', clock(e.durationMs)),
+      row('Attendees (peak)', String(e.peak)),
+      row('Decisions made', '0'),
+      row('Action items', 'TBD'),
+      row('Tip', '0%'),
+      rule,
+      row('TOTAL', money(e.cost)),
+      rule,
+      center('Thank you for your synergy!'),
+      center('No refunds. No take-backs.'),
+      center('This meeting could have'),
+      center('been an email.'),
+    ].join('\n');
+  }
+
+  /** @param {string} text @returns {Promise<Blob | null>} */
+  function receiptPNG(text) {
+    const lines = text.split('\n');
+    const font = 22, lh = 32, pad = 40;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(W * font * 0.62 + pad * 2);
+    c.height = lines.length * lh + pad * 2;
+    const ctx = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+    ctx.fillStyle = '#fffdf6';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#1d1d1b';
+    ctx.font = `${font}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.textBaseline = 'top';
+    lines.forEach((l, i) => ctx.fillText(l, pad, pad + i * lh));
+    return new Promise((res) => c.toBlob(res, 'image/png'));
+  }
+
+  MM.receipt = { receiptText, receiptPNG };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/ui/leaderboard.js">
+(function (MM) {
+  'use strict';
+
+  const { money, duration, dateTime } = MM.format;
+  const { BADGES, earned } = MM.badges;
+  const { h } = MM.picker;
+
+  /** @typedef {import('../storage.js').HistoryEntry} HistoryEntry */
+
+  /** @param {string} label @param {string} value */
+  const stat = (label, value) => h('div', {}, [h('span', {}, [label]), h('strong', {}, [value])]);
+
+  /**
+   * @param {{board: HTMLElement, totals: HTMLElement, badges: HTMLElement}} els
+   * @param {HistoryEntry[]} history
+   * @param {'cost' | 'recent'} sort
+   * @param {{rename: (id: string, title: string) => void, remove: (id: string) => void}} actions
+   */
+  function renderLeaderboard(els, history, sort, actions) {
+    const total = history.reduce((s, e) => s + e.cost, 0);
+    const hours = history.reduce((s, e) => s + (e.durationMs * e.peak) / 3600e3, 0);
+    els.totals.replaceChildren(
+      stat('Lifetime money set on fire', money(total)),
+      stat('Person-hours lost', hours.toFixed(1)),
+      stat('Meetings survived', String(history.length)),
+    );
+
+    const have = new Set(earned(history).map((b) => b.id));
+    els.badges.replaceChildren(...BADGES.map((b) =>
+      h('span', { class: 'badge' + (have.has(b.id) ? '' : ' locked'), title: b.desc }, [`${b.emoji} ${b.name}`])));
+
+    const list = [...history]
+      .sort(sort === 'cost' ? (a, b) => b.cost - a.cost : (a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
+      .slice(0, sort === 'cost' ? 10 : 25);
+    els.board.classList.toggle('recent', sort === 'recent');
+
+    if (!list.length) {
+      els.board.replaceChildren(h('li', { class: 'empty' }, ['No meetings yet. Suspiciously productive.']));
+      return;
+    }
+    els.board.replaceChildren(...list.map((e) => h('li', {}, [
+      h('input', {
+        class: 'entry-title', value: e.title, maxlength: 80, 'aria-label': 'Meeting name (click to rename)',
+        onchange: (/** @type {Event} */ ev) => actions.rename(e.id, /** @type {HTMLInputElement} */ (ev.target).value.trim() || e.title),
+      }),
+      h('span', { class: 'amt' }, [money(e.cost)]),
+      h('span', { class: 'meta' }, [
+        `${dateTime(e.startedAt)} · ${duration(e.durationMs)} · ${e.peak} ${e.peak === 1 ? 'person' : 'people'}`
+          + (e.postmortem ? ' · post-mortem' : '') + (e.loaded ? ' · fully loaded' : '') + ' · ',
+        h('button', { type: 'button', class: 'del', 'aria-label': `Delete ${e.title}`, onclick: () => actions.remove(e.id) }, ['delete']),
+      ]),
+    ])));
+  }
+
+  MM.leaderboard = { renderLeaderboard };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/easter.js">
+(function (MM) {
+  'use strict';
+
+  // Ported from the original app's site.js. ↑ ↑ ↓ ↓ ← → ← → B A
+  const PATTERN = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+  /** @param {() => void} onUnlock */
+  function konami(onUnlock) {
+    let i = 0;
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      i = key === PATTERN[i] ? i + 1 : key === PATTERN[0] ? 1 : 0;
+      if (i === PATTERN.length) { i = 0; onUnlock(); }
+    });
+  }
+
+  MM.easter = { konami };
+})(globalThis.MM = globalThis.MM || {});
+</script>
+<script data-src="js/main.js">
+(function (MM) {
+  'use strict';
+
+  const salaries = MM.salaries;
+  const jokeRoles = MM.jokeRoles;
+  const { buildCatalog, perPersonRatePerMs, GENERIC_KEY } = MM.catalog;
+  const { headcount, ratesFor, totalRate, projection, RECURRENCE } = MM.cost;
+  const S = MM.session;
+  const { createStore } = MM.storage;
+  const { encodeConfig, decodeConfig } = MM.share;
+  const { tierFor, nextTier, heat } = MM.tiers;
+  const { equivalents } = MM.equivalents;
+  const { randomTitle } = MM.titles;
+  const { money, ticker, moneyShort, clock, duration } = MM.format;
+  const { renderChips } = MM.picker;
+  const { renderLeaderboard } = MM.leaderboard;
+  const { receiptText, receiptPNG } = MM.receipt;
+  const { createEffects } = MM.effects;
+  const { createAudio } = MM.audio;
+  const { konami } = MM.easter;
+
+  /** @typedef {import('./session.js').Session} Session @typedef {import('./storage.js').HistoryEntry} HistoryEntry */
+
+  // ---------- setup ----------
+  const $ = (/** @type {string} */ id) => /** @type {any} */ (document.getElementById(id));
+  const catalog = buildCatalog(salaries, jokeRoles);
+  const store = createStore();
+  const effects = createEffects($('rain'));
+  const audio = createAudio();
+
+  // ?speed=100 makes time fly (for testing the tiers). Real meetings already feel like this.
+  const speed = Math.max(1, Number(new URLSearchParams(location.search).get('speed')) || 1);
+  const T0 = Date.now();
+  const now = () => (speed === 1 ? Date.now() : T0 + (Date.now() - T0) * speed);
+
+  /** @param {string} key @param {boolean} loaded */
+  const rateOf = (key, loaded) => {
+    const r = catalog.get(key);
+    return r ? perPersonRatePerMs(r, loaded) : 0;
+  };
+
+  const prefs = { industry: 'all', sound: false, view: 'live', sort: 'cost', ...store.prefs() };
+  /** @param {Record<string, any>} patch */
+  const setPrefs = (patch) => { Object.assign(prefs, patch); store.setPrefs(patch); };
+
+  /** @param {Record<string, number>} a */
+  const known = (a) => Object.fromEntries(Object.entries(a ?? {}).filter(([k, c]) => catalog.has(k) && c > 0));
+
+  /** @param {Partial<Session>} [init] */
+  const freshSession = (init = {}) => S.createSession({
+    industry: prefs.industry, loaded: !!prefs.loaded, attendees: { [GENERIC_KEY]: 5 }, ...init,
+  });
+
+  /** @returns {Session} */
+  function restore() {
+    const saved = store.activeSession();
+    if (saved && Array.isArray(saved.segments) && saved.attendees && typeof saved.status === 'string') {
+      return { ...saved, attendees: known(saved.attendees) };
+    }
+    return freshSession();
+  }
+
+  /** @type {Session} */
+  let session = restore();
+  let toastTimer = 0;
+
+  // A shared link pre-fills the room, unless a meeting is already in progress.
+  const shared = decodeConfig(location.hash, catalog.has);
+  if (shared) {
+    if (session.status === 'idle') {
+      const industry = shared.industry && catalog.industry(shared.industry) ? shared.industry : session.industry;
+      session = S.update(session, {
+        attendees: Object.keys(shared.attendees).length ? shared.attendees : session.attendees,
+        industry, title: shared.title ?? '', loaded: !!shared.loaded,
+      }, now(), rateOf);
+      setPrefs({ industry, view: 'live' });
+      setTimeout(() => toast('📨 Meeting loaded from your link. Hit start when it begins.'), 300);
+    } else {
+      setTimeout(() => toast('A meeting is already running, so the link was ignored. Finish this one first!'), 300);
+    }
+    try { history.replaceState(null, '', location.href.split('#')[0]); } catch { /* some browsers refuse on file:// */ }
+  }
+
+  // ---------- state changes ----------
+  /** @param {Session} next */
+  function commit(next) {
+    session = next;
+    store.saveActive(session);
+    renderRoom();
+    renderControls();
+    renderPostmortem();
+    tick(true);
+  }
+
+  /** @param {string} key @param {number} delta */
+  function changeCount(key, delta) {
+    const attendees = { ...session.attendees };
+    attendees[key] = Math.max(0, Math.min(999, (attendees[key] ?? 0) + delta));
+    commit(S.update(session, { attendees }, now(), rateOf));
+  }
+
+  function startMeeting() {
+    let s = session;
+    if (headcount(s.attendees) === 0) s = S.update(s, { attendees: { [GENERIC_KEY]: 1 } }, now(), rateOf);
+    const offset = Math.max(0, Number($('startOffset').value) || 0) * 60_000;
+    lastLevel = -1;
+    commit(S.start(s, now(), rateOf, offset));
+    if (offset) toast(`Backdated ${duration(offset)}. The damage was already done.`);
+  }
+
+  function togglePause() {
+    if (session.status === 'running') commit(S.pause(session, now()));
+    else if (session.status === 'paused') commit(S.resume(session, now(), rateOf));
+  }
+
+  function endMeeting() {
+    const t = now();
+    const ended = S.end(session, t);
+    const before = store.history();
+    /** @type {HistoryEntry} */
+    const entry = {
+      id: ended.id,
+      title: ended.title.trim() || randomTitle(),
+      startedAt: new Date(ended.startedAt ?? t).toISOString(),
+      durationMs: S.elapsed(ended, t),
+      cost: S.cost(ended, t),
+      peak: ended.peak,
+      industry: catalog.industry(ended.industry)?.label ?? 'Every Industry',
+      loaded: ended.loaded,
+      lines: S.breakdown(ended, t).map((b) => {
+        const r = catalog.get(b.key);
+        return { label: r?.label ?? b.key, emoji: r?.emoji ?? '🙂', count: b.count, cost: b.cost };
+      }),
+    };
+    store.addEntry(entry);
+    const isRecord = before.length > 0 && entry.cost > Math.max(...before.map((e) => e.cost));
+    exitFullscreen();
+    effects.stop();
+    document.body.classList.remove('siren');
+    commit(freshSession({ attendees: ended.attendees, industry: ended.industry, loaded: ended.loaded }));
+    showReceipt(entry, isRecord);
+    renderShame();
+  }
+
+  // ---------- rendering ----------
+  function renderRoom() {
+    const a = session.attendees;
+    const n = headcount(a);
+    const rate = totalRate(a, ratesFor(a, (k) => rateOf(k, session.loaded)));
+    $('attSummary').textContent = `${n} ${n === 1 ? 'person' : 'people'} · ${money(rate * 3_600_000)}/hr`;
+    $('hcValue').textContent = String(a[GENERIC_KEY] ?? 0);
+    const generic = catalog.get(GENERIC_KEY);
+    $('hcHint').textContent = `generic attendees (~${moneyShort(generic?.annual ?? 0)}/yr each)`;
+    $('industry').value = session.industry;
+    $('loaded').checked = session.loaded;
+    if (document.activeElement !== $('title')) $('title').value = session.title;
+    $('meterMeetingTitle').textContent = session.title;
+    renderChips($('chips'), { catalog, industry: session.industry, attendees: a, onChange: changeCount });
+  }
+
+  function renderControls() {
+    const st = session.status;
+    $('meter').dataset.status = st;
+    $('btnStart').hidden = st !== 'idle';
+    $('btnPause').hidden = st === 'idle';
+    $('btnEnd').hidden = st === 'idle';
+    $('btnPause').textContent = st === 'paused' ? '▶ Resume' : '⏸ Pause';
+    $('btnSound').textContent = prefs.sound ? '🔊 Sound' : '🔇 Sound';
+    $('btnSound').setAttribute('aria-pressed', String(!!prefs.sound));
+  }
+
+  let lastLevel = -1;
+  let equivIndex = 0;
+  let equivAt = 0;
+  let raf = 0;
+
+  /** Render the live numbers. Called every frame while running, or once on demand. */
+  function tick(force = false) {
+    raf = 0;
+    const t = now();
+    const st = session.status;
+    const c = S.cost(session, t);
+    const rate = st === 'running' ? S.currentRate(session)
+      : totalRate(session.attendees, ratesFor(session.attendees, (k) => rateOf(k, session.loaded)));
+    const n = headcount(session.attendees);
+
+    $('cost').textContent = ticker(c);
+    $('timer').textContent = clock(S.elapsed(session, t));
+    $('statMinute').textContent = money(rate * 60_000);
+    $('statHour').textContent = money(rate * 3_600_000);
+    $('statPerson').textContent = money(n ? c / n : 0);
+    const next = nextTier(c);
+    $('statNext').textContent = !next ? '🏁 none left'
+      : rate > 0 ? `${moneyShort(next.min)} in ${duration((next.min - c) / rate)}` : moneyShort(next.min);
+
+    const tier = tierFor(c);
+    document.documentElement.style.setProperty('--heat', String(st === 'idle' ? 0 : heat(tier.level)));
+    if (st === 'idle') {
+      $('quip').textContent = 'Hit start. Then pretend you’re paying attention.';
+      $('equiv').textContent = n ? `This room burns ${money(rate * 60_000)} every minute.` : ' ';
+    } else {
+      if (tier.level !== lastLevel) {
+        const rising = lastLevel >= 0 && tier.level > lastLevel;
+        $('quip').textContent = tier.quip;
+        if (rising) {
+          if (prefs.sound) audio.chaChing();
+          if (tier.level >= 10) effects.shake($('meter'));
+        }
+        document.body.classList.toggle('siren', tier.level >= 13);
+        lastLevel = tier.level;
+      }
+      if (force || t - equivAt > 8000 * speed) {
+        const list = equivalents(c);
+        $('equiv').textContent = `${list[equivIndex++ % list.length]} so far`;
+        equivAt = t;
+      }
+      effects.setLevel(st === 'running' ? tier.level : 0);
+    }
+    if (st === 'running' && !raf) raf = requestAnimationFrame(() => tick());
+  }
+
+  // The tab title shows the cost too. setInterval keeps it ticking in background tabs.
+  setInterval(() => {
+    document.title = session.status === 'running'
+      ? `${ticker(S.cost(session, now()))} · Meeting Meter`
+      : 'Meeting Meter: Real-Time Meeting Cost Calculator';
+  }, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(true); });
+
+  // ---------- post-mortem ----------
+  for (const [id, r] of Object.entries(RECURRENCE)) $('pmRecurrence').append(new Option(r.label, id));
+  $('pmRecurrence').value = 'weekly';
+
+  function postmortemNumbers() {
+    const ms = (Math.max(0, Number($('pmHours').value) || 0) * 60 + Math.max(0, Number($('pmMinutes').value) || 0)) * 60_000;
+    const rec = RECURRENCE[/** @type {keyof typeof RECURRENCE} */ ($('pmRecurrence').value)] ?? RECURRENCE.once;
+    const rate = totalRate(session.attendees, ratesFor(session.attendees, (k) => rateOf(k, session.loaded)));
+    return { ms, rec, p: projection(rate, ms, rec.perYear) };
+  }
+
+  function renderPostmortem() {
+    const { rec, p } = postmortemNumbers();
+    $('pmEvent').textContent = money(p.perEvent);
+    $('pmYear').textContent = money(p.perYear);
+    $('pmHoursYear').textContent = p.hoursPerYear.toFixed(1);
+    const worst = rec.perYear > 1 ? p.perYear : p.perEvent;
+    $('pmQuip').textContent = p.perEvent > 0
+      ? `${tierFor(p.perEvent).quip} ${rec.perYear > 1 ? `Every year, that’s ${equivalents(worst)[0].replace('≈ ', '')}.` : ''}`
+      : 'A meeting with no length or no people. The dream.';
+  }
+
+  $('pmSave').addEventListener('click', () => {
+    const { ms, rec, p } = postmortemNumbers();
+    if (!p.perEvent) return toast('Add some people and a duration first.');
+    const yearly = rec.perYear > 1;
+    const base = session.title.trim() || randomTitle();
+    store.addEntry({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      title: yearly ? `${base} (${rec.label.toLowerCase()}, per year)` : base,
+      startedAt: new Date().toISOString(),
+      durationMs: ms * rec.perYear,
+      cost: yearly ? p.perYear : p.perEvent,
+      peak: headcount(session.attendees),
+      industry: catalog.industry(session.industry)?.label ?? 'Every Industry',
+      loaded: session.loaded,
+      postmortem: true,
+    });
+    renderShame();
+    toast('🏆 Added to the Hall of Shame.');
+  });
+  for (const id of ['pmHours', 'pmMinutes', 'pmRecurrence']) $(id).addEventListener('input', renderPostmortem);
+
+  // ---------- Hall of Shame ----------
+  function renderShame() {
+    renderLeaderboard({ board: $('board'), totals: $('totals'), badges: $('badges') }, store.history(),
+      prefs.sort === 'recent' ? 'recent' : 'cost', {
+        rename: (id, title) => { store.rename(id, title); renderShame(); },
+        remove: (id) => { store.removeEntry(id); renderShame(); },
+      });
+    document.querySelectorAll('[data-sort]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(/** @type {HTMLElement} */ (b).dataset.sort === prefs.sort)));
+    if (!store.available) $('storageNote').textContent = 'Your browser is blocking storage, so history won’t be saved this time.';
+  }
+
+  document.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => {
+    setPrefs({ sort: /** @type {HTMLElement} */ (b).dataset.sort }); renderShame();
+  }));
+  $('btnExport').addEventListener('click', () => download(new Blob([store.exportJSON()], { type: 'application/json' }), 'meeting-meter-history.json'));
+  $('importFile').addEventListener('change', async (/** @type {Event} */ e) => {
+    const input = /** @type {HTMLInputElement} */ (e.target);
+    const file = input.files?.[0];
+    if (!file) return;
+    try { toast(`Imported ${store.importJSON(await file.text())} meetings.`); } catch { toast('That file doesn’t look like a Meeting Meter export.'); }
+    input.value = '';
+    renderShame();
+  });
+  $('btnClear').addEventListener('click', () => {
+    if (confirm('Erase your entire Hall of Shame? (The meetings still happened.)')) { store.clearHistory(); renderShame(); }
+  });
+
+  // ---------- receipt ----------
+  /** @type {HistoryEntry | null} */
+  let receiptEntry = null;
+  /** @param {HistoryEntry} entry @param {boolean} isRecord */
+  function showReceipt(entry, isRecord) {
+    receiptEntry = entry;
+    $('receipt').textContent = receiptText(entry);
+    $('receiptTitle').value = entry.title;
+    $('recordBanner').hidden = !isRecord;
+    $('btnShareReceipt').hidden = !navigator.share;
+    /** @type {HTMLDialogElement} */ ($('receiptDialog')).showModal();
+    if (isRecord) effects.burst(3000);
+  }
+  $('receiptTitle').addEventListener('input', () => {
+    if (!receiptEntry) return;
+    receiptEntry.title = $('receiptTitle').value.trim() || receiptEntry.title;
+    store.rename(receiptEntry.id, receiptEntry.title);
+    $('receipt').textContent = receiptText(receiptEntry);
+  });
+  $('btnCopyReceipt').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('receipt').textContent); toast('📋 Receipt copied. Paste it somewhere passive-aggressive.'); }
+    catch { toast('Copy failed. Your clipboard is in a meeting.'); }
+  });
+  $('btnShareReceipt').addEventListener('click', () => {
+    navigator.share?.({ title: 'Meeting Meter receipt', text: $('receipt').textContent }).catch(() => {});
+  });
+  $('btnSaveReceipt').addEventListener('click', async () => {
+    const blob = await receiptPNG($('receipt').textContent);
+    if (blob) download(blob, 'meeting-receipt.png');
+  });
+  $('btnCloseReceipt').addEventListener('click', () => { $('receiptDialog').close(); renderShame(); });
+
+  // ---------- controls & room ----------
+  $('btnStart').addEventListener('click', startMeeting);
+  $('btnPause').addEventListener('click', togglePause);
+  $('btnEnd').addEventListener('click', endMeeting);
+  $('btnSound').addEventListener('click', () => {
+    setPrefs({ sound: !prefs.sound }); renderControls();
+    if (prefs.sound) audio.chaChing();
+  });
+  $('btnFullscreen').addEventListener('click', toggleFullscreen);
+  $('hcPlus').addEventListener('click', () => changeCount(GENERIC_KEY, 1));
+  $('hcMinus').addEventListener('click', () => changeCount(GENERIC_KEY, -1));
+  $('btnJoin').addEventListener('click', () => { changeCount(GENERIC_KEY, 1); toast('🚪 "Sorry I’m late, what did I miss?"'); });
+  $('btnLeave').addEventListener('click', () => {
+    const a = session.attendees;
+    const key = (a[GENERIC_KEY] ?? 0) > 0 ? GENERIC_KEY : Object.keys(a).sort((x, y) => a[y] - a[x])[0];
+    if (!key) return toast('Nobody left to leave. Just you and your thoughts.');
+    changeCount(key, -1);
+    toast('👋 One escaped. Lucky.');
+  });
+
+  $('industry').append(new Option(`${salaries.general.emoji} ${salaries.general.label}`, 'all'));
+  for (const g of catalog.industries) $('industry').append(new Option(`${g.emoji} ${g.label}`, g.id));
+  $('industry').addEventListener('change', () => {
+    setPrefs({ industry: $('industry').value });
+    commit(S.update(session, { industry: $('industry').value }, now(), rateOf));
+  });
+  $('loaded').addEventListener('change', () => {
+    setPrefs({ loaded: $('loaded').checked });
+    commit(S.update(session, { loaded: $('loaded').checked }, now(), rateOf));
+  });
+  $('title').addEventListener('input', () => {
+    session = S.update(session, { title: $('title').value }, now(), rateOf);
+    store.saveActive(session);
+    $('meterMeetingTitle').textContent = session.title;
+  });
+  $('btnShare').addEventListener('click', async () => {
+    const url = `${location.href.split('#')[0]}#${encodeConfig(session)}`;
+    try { await navigator.clipboard.writeText(url); toast('🔗 Link copied. Paste it into the calendar invite.'); }
+    catch { prompt('Copy this link:', url); }
+  });
+  $('btnReset').addEventListener('click', () => {
+    commit(S.update(session, { attendees: { [GENERIC_KEY]: 5 }, title: '' }, now(), rateOf));
+  });
+
+  // ---------- views ----------
+  /** @param {string} view */
+  function showView(view) {
+    setPrefs({ view });
+    for (const v of ['live', 'postmortem', 'shame']) $(`view-${v}`).hidden = v !== view;
+    $('attendees').hidden = view === 'shame';
+    document.querySelectorAll('[data-view]').forEach((b) => {
+      if (/** @type {HTMLElement} */ (b).dataset.view === view) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    if (view === 'shame') renderShame();
+    if (view === 'postmortem') renderPostmortem();
+  }
+  document.querySelectorAll('[data-view]').forEach((b) =>
+    b.addEventListener('click', () => showView(/** @type {HTMLElement} */ (b).dataset.view ?? 'live')));
+
+  // ---------- presentation mode ----------
+  function toggleFullscreen() {
+    const meter = $('meter');
+    if (document.fullscreenElement || meter.classList.contains('fake-fullscreen')) return exitFullscreen();
+    if (document.fullscreenEnabled) meter.requestFullscreen().catch(() => meter.classList.add('fake-fullscreen'));
+    else meter.classList.add('fake-fullscreen');
+  }
+  function exitFullscreen() {
+    $('meter').classList.remove('fake-fullscreen');
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+
+  // ---------- keyboard ----------
+  document.addEventListener('keydown', (e) => {
+    const target = /** @type {HTMLElement} */ (e.target);
+    if (e.ctrlKey || e.metaKey || e.altKey || target.closest('input, select, textarea, dialog')) return;
+    if (e.key === 'Escape') exitFullscreen();
+    else if (e.key === ' ') { e.preventDefault(); if (session.status === 'idle') startMeeting(); else togglePause(); }
+    else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+    else if (e.key === '+' || e.key === '=') changeCount(GENERIC_KEY, 1);
+    else if (e.key === '-' || e.key === '_') changeCount(GENERIC_KEY, -1);
+    else return;
+    if (target.tagName === 'BUTTON') target.blur();
+  });
+
+  konami(() => {
+    effects.burst(10_000);
+    if (prefs.sound) audio.chaChing();
+    toast('🎮 Cheat code accepted: infinite budget. Make it rain.');
+  });
+
+  // ---------- helpers ----------
+  /** @param {string} msg */
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => el.classList.remove('show'), 3500);
+  }
+  /** @param {Blob} blob @param {string} name */
+  function download(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- go ----------
+  $('dataDate').textContent = salaries.period ?? '';
+  // ?demo=45 auto-starts a meeting that "began" 45 minutes ago (screenshots, demos).
+  const demo = Number(new URLSearchParams(location.search).get('demo'));
+  if (demo > 0 && session.status === 'idle') {
+    $('startOffset').value = String(Math.min(600, demo));
+    startMeeting();
+  }
+  if (session.status !== 'idle') setTimeout(() => toast('😈 Welcome back. The meter never stopped.'), 300);
+  lastLevel = session.status === 'idle' ? -1 : tierFor(S.cost(session, now())).level;
+  if (lastLevel >= 0) $('quip').textContent = tierFor(S.cost(session, now())).quip;
+  renderRoom();
+  renderControls();
+  showView(['live', 'postmortem', 'shame'].includes(prefs.view) ? prefs.view : 'live');
+  tick(true);
+})(globalThis.MM = globalThis.MM || {});
+</script>
+</body>
+</html>
